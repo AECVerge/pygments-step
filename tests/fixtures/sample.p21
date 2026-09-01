@@ -1,0 +1,28 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('a description','second line'),'2;1');
+FILE_NAME(
+  'sample.p21',
+  '2024-01-01T00:00:00',
+  ('Nordm\X2\00F8\X0\ller','it''s me'),
+  ('Org'),
+  'preprocessor','originating system','authorisation');
+FILE_SCHEMA(('SOME_APPLICATION_PROTOCOL'));
+ENDSEC;
+
+DATA;
+/* a block comment
+   spanning lines */
+#1= CARTESIAN_POINT('',(0.,0.,0.));
+#2= CARTESIAN_POINT('',(-1.5E-3,+2.,1.0E+10));
+#3= DIRECTION('',(0.,0.,1.));
+#4= AXIS2_PLACEMENT_3D('',#1,#3,$);
+#5= PROPERTY_SINGLE_VALUE('Ref',$,IDENTIFIER('A-1'),*);
+#6= NAMED_UNIT(.T.,.F.,.UNSPECIFIED.);
+#7= PERSON($,'Name',$,(),(),());
+#8= COMPLEX_ENTITY((0.),(1.));
+#9= BINARY_HOLDER("0F3A");
+#10= EXTERNAL_REF(!USER_DEFINED_KEYWORD(1));
+ENDSEC;
+
+END-ISO-10303-21;
