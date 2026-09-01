@@ -29,23 +29,31 @@ class ExpressLexer(RegexLexer):
              "constant", "subtype_constraint")
 
     _KEYWORDS = (
-        "abstract", "alias", "and", "andor", "array", "as", "bag", "based_on",
-        "begin", "by", "case", "constant", "derive", "div", "else", "end",
-        "end_alias", "end_case", "end_constant", "end_entity", "end_function",
-        "end_if", "end_local", "end_procedure", "end_repeat", "end_rule",
-        "end_schema", "end_subtype_constraint", "end_type", "escape", "for",
-        "from", "if", "in", "inverse", "like", "local", "mod", "not", "of",
-        "oneof", "optional", "or", "otherwise", "query", "reference",
-        "renamed", "repeat", "return", "self", "skip", "subtype", "supertype",
-        "then", "to", "total_over", "unique", "until", "use", "var", "where",
-        "while", "with", "xor",
+        "abstract", "alias", "as", "based_on", "begin", "by", "case",
+        "constant", "derive", "else", "end", "end_alias", "end_case",
+        "end_constant", "end_entity", "end_function", "end_if", "end_local",
+        "end_procedure", "end_repeat", "end_rule", "end_schema",
+        "end_subtype_constraint", "end_type", "escape", "fixed", "for",
+        "from", "if", "inverse", "local", "of", "oneof", "optional",
+        "otherwise", "query", "reference", "renamed", "repeat", "return",
+        "skip", "subtype", "supertype", "then", "to", "total_over", "unique",
+        "until", "use", "var", "where", "while", "with",
     )
 
-    _TYPES = ("aggregate", "binary", "boolean", "enumeration", "extensible",
-              "generic", "generic_entity", "integer", "list", "logical",
-              "number", "real", "select", "set", "string")
+    # Table 2 keeps these apart from the table 1 keywords: they are reserved
+    # words that denote operators, so they carry an operator token.
+    _WORD_OPERATORS = ("and", "andor", "div", "in", "like", "mod", "not",
+                       "or", "xor")
 
-    _CONSTANTS = ("true", "false", "unknown", "const_e", "pi")
+    # array, bag, list and set are all aggregation_types (clause 172), so they
+    # are classified together rather than split across Keyword/Keyword.Type.
+    _TYPES = ("aggregate", "array", "bag", "binary", "boolean", "enumeration",
+              "extensible", "generic", "generic_entity", "integer", "list",
+              "logical", "number", "real", "select", "set", "string")
+
+    # Table 3 of ISO 10303-11:2004 lists SELF and "?" among the built-in
+    # constants, alongside CONST_E, PI, TRUE, FALSE and UNKNOWN.
+    _CONSTANTS = ("true", "false", "unknown", "const_e", "pi", "self")
 
     _BUILTINS = (
         "abs", "acos", "asin", "atan", "blength", "cos", "exists", "exp",
@@ -66,16 +74,21 @@ class ExpressLexer(RegexLexer):
             (words(_DECL, prefix=r"\b", suffix=r"\b"), Keyword.Declaration),
             (words(_CONSTANTS, prefix=r"\b", suffix=r"\b"), Keyword.Constant),
             (words(_TYPES, prefix=r"\b", suffix=r"\b"), Keyword.Type),
+            (words(_WORD_OPERATORS, prefix=r"\b", suffix=r"\b"), Operator.Word),
             (words(_KEYWORDS, prefix=r"\b", suffix=r"\b"), Keyword),
-            (words(_BUILTINS, prefix=r"\b", suffix=r"\b(\s*\()"),
-             bygroups(Name.Builtin, Punctuation)),
+            (words(_BUILTINS, prefix=r"\b", suffix=r"\b(?=\s*\()"),
+             Name.Builtin),
             (r"'", String.Single, "string"),
             (r'"[0-9a-f]*"', String.Other),              # encoded string literal
             (r"%[01]+", Number.Bin),                     # binary literal
             (r"\d+\.\d*(e[+-]?\d+)?", Number.Float),
             (r"\d+", Number.Integer),
             (r"[a-z_]\w*", Name),
-            (r":=|:<>:|:=:|<[*>=]?|>=?|<>|\*\*|\|\||[-+*/=|?@\\]", Operator),
+            # "?" is the indeterminate built-in constant (table 3), not an
+            # operator, so it is matched before the operator character class.
+            (r"\?", Keyword.Constant),
+            # Longest-first: `:=` must not shadow `:=:` (rel_op, clause 282).
+            (r":=:|:<>:|:=|<[*>=]?|>=?|<>|\*\*|\|\||[-+*/=|@\\]", Operator),
             (r"[;:,.()\[\]{}]", Punctuation),
         ],
         "comment": [

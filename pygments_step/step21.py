@@ -25,7 +25,7 @@ class StepFileLexer(RegexLexer):
     """
 
     name = "STEP Part 21"
-    aliases = ["step21", "p21", "step", "stp", "spf"]
+    aliases = ["step21", "p21", "step", "stp", "spf", "iso-10303-21"]
     filenames = ["*.p21", "*.stp", "*.step"]
     mimetypes = ["application/x-step", "model/step"]
     url = "https://en.wikipedia.org/wiki/ISO_10303-21"
@@ -37,6 +37,10 @@ class StepFileLexer(RegexLexer):
         "root": [
             (r"\s+", Whitespace),
             (r"/\*", Comment.Multiline, "comment"),
+            # Print control directives (table 6) may appear at any position
+            # where a token separator may appear, not only inside strings
+            # (clause 11), so they must be recognised here too.
+            (r"\\[NF]\\", Comment.Preproc),
             (r"\b(END-ISO-10303-21|ISO-10303-21)\b", Keyword.Namespace),
             (words(("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE",
                     "SIGNATURE"), prefix=r"\b", suffix=r"\b"),
@@ -60,10 +64,13 @@ class StepFileLexer(RegexLexer):
         ],
         "string": [
             (r"''", String.Escape),
-            # ISO 10303-21 control directives: \S\ \P?\ \X\ \X2\..\X0\ \X4\..\X0\
+            # ISO 10303-21 table 4, string control directives:
+            # \S\ \P?\ \X\ \X2\..\X0\ \X4\..\X0\
             (r"\\S\\.|\\P[a-i]\\|\\X\\[0-9a-f]{2}|"
              r"\\X2\\(?:[0-9a-f]{4})*\\X0\\|\\X4\\(?:[0-9a-f]{8})*\\X0\\",
              String.Escape),
+            # Table 6 print control directives are allowed within strings too.
+            (r"\\[NF]\\", String.Escape),
             (r"'", String.Single, "#pop"),
             (r"[^'\\]+", String.Single),
             (r"\\", String.Single),

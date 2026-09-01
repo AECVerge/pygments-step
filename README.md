@@ -12,7 +12,7 @@
 | `StepFileLexer` | Part 21 exchange file, ISO 10303-21 | ` ```step21 ` | `*.p21`, `*.stp`, `*.step` |
 
 Additional aliases: `exp`, `iso-10303-11` for EXPRESS; `p21`, `step`, `stp`,
-`spf` for Part 21.
+`spf`, `iso-10303-21` for Part 21.
 
 Both lexers are **schema-agnostic**. They lex the *languages*, not any single
 application protocol, so they work equally well for IFC, AP203, AP214 or any
@@ -138,6 +138,8 @@ pygmentize schema.exp
   values (`*`).
 - String control directives: `\S\`, `\P?\`, `\X\`, `\X2\...\X0\`,
   `\X4\...\X0\`, plus `''` escapes.
+- Print control directives `\N\` and `\F\`, both inside strings and at any
+  position where a token separator may appear.
 - Binary literals (`"0F3A"`), user-defined keywords (`!USER_DEFINED_KEYWORD`)
   and `/* ... */` comments.
 

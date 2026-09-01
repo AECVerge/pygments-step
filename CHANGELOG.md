@@ -23,9 +23,11 @@ Initial release.
     separately from the keyword.
   - Doubled-quote string escapes (`'it''s'`), binary literals (`%10110`),
     encoded string literals (`"000000E9"`), reals and integers.
-  - Built-in functions and built-in types.
+  - Built-in constants (`SELF`, `?`, `CONST_E`, `PI`, `TRUE`, `FALSE`,
+    `UNKNOWN`), built-in functions and built-in types.
 - `StepFileLexer` for STEP Part 21 exchange files (ISO 10303-21).
-  Registered as `step21`, with aliases `p21`, `step`, `stp` and `spf`, and bound
+  Registered as `step21`, with aliases `p21`, `step`, `stp`, `spf` and
+  `iso-10303-21`, and bound
   to `*.p21`, `*.stp`, `*.step` and the `application/x-step` and `model/step`
   MIME types.
   - Exchange structure keywords: `ISO-10303-21`, `END-ISO-10303-21`, `HEADER`,
@@ -36,6 +38,8 @@ Initial release.
     values.
   - String control directives `\S\`, `\P?\`, `\X\`, `\X2\...\X0\` and
     `\X4\...\X0\`, plus `''` escapes.
+  - Print control directives `\N\` and `\F\`, recognised both inside strings
+    and wherever a token separator may appear.
   - Binary literals (`"0F3A"`), user-defined keywords
     (`!USER_DEFINED_KEYWORD`) and `/* ... */` comments.
 - Registration through `pygments.lexers` entry points, so installing the
