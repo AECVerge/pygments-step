@@ -1,0 +1,75 @@
+site_name: pygments-step
+site_description: Pygments lexers for EXPRESS (ISO 10303-11) and STEP Part 21 (ISO 10303-21)
+site_url: https://AECVerge.github.io/pygments-step/
+repo_url: https://github.com/AECVerge/pygments-step
+repo_name: AECVerge/pygments-step
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.expand
+    - navigation.indexes
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - social
+  palette:
+    # Light
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Live demo: demo.md
+  - Quickstart: quickstart.md
+  - Build from source: build.md
+
+# github and pypi links shown in the footer
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/AECVerge/pygments-step
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/pygments-step/
+
+# Syntax highlighting is delegated to Pygments (the default). The pygments-step
+# package registers `express` and `step21` lexers through entry points, so any
+# code fence tagged with either language is highlighted by this project's lexers
+# as long as the package is installed in the build environment (see docs.yml).
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/extra.css
