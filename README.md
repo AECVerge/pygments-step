@@ -177,9 +177,14 @@ python tests/test_lexers.py
 
 Tests cover alias and filename registration, token-level regressions for both
 lexers, and assert that neither fixture produces a single `Error` token.
-Fixtures are small hand-written snippets committed to the repository on
-purpose: the real buildingSMART `*.exp` schemas are fetched over the network
-and gitignored, so they cannot serve as a reproducible corpus.
+
+`tests/test_docs_pages.py` does the same for the rendered `docs/express` and
+`docs/step` pages. Those pages are an exhaustive, category-by-category corpus
+for the two lexers (keywords, operators, types, literals, comments, …); the test
+parses every code fence on them and asserts that the lexer produces zero
+`Error` tokens, and that each page really covers the whole family of tokens it
+claims to. The docs build in CI runs with `mkdocs build --strict`, so a snippet
+that stops lexing cleanly blocks the deploy as well.
 
 ## License
 

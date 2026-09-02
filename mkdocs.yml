@@ -39,6 +39,24 @@ nav:
   - Live demo: demo.md
   - Quickstart: quickstart.md
   - Build from source: build.md
+  - EXPRESS tests:
+    - express/index.md
+    - Keywords: express/keywords.md
+    - Operators: express/operators.md
+    - Declarations: express/declarations.md
+    - Types: express/types.md
+    - Constants: express/constants.md
+    - Built-ins: express/builtins.md
+    - Literals: express/literals.md
+    - Remarks: express/comments.md
+  - STEP tests:
+    - step/index.md
+    - Keywords: step/keywords.md
+    - Entities: step/entities.md
+    - Enumerations: step/enumerations.md
+    - Literals: step/literals.md
+    - Directives: step/directives.md
+    - Comments: step/comments.md
 
 # github and pypi links shown in the footer
 extra:
