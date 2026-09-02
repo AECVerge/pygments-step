@@ -1,20 +1,27 @@
 name: release
 
-# Manual, reviewable publish. Actions run on the released branch where you can
-# select the target from the "Run workflow" dropdown:
-#   - testpypi  (default) : upload to https://test.pypi.org/
-#   - pypi                : upload to https://pypi.org/ (real, permanent)
+# Publish the package to PyPI (test.pypi.org or pypi.org).
 #
-# Workflow: publish to testpypi first, confirm the install, then re-run the same
-# workflow choosing "pypi" once you have set the PYPI_TOKEN secret. Nothing is
-# published unless this job succeeds.
+# Triggered two ways:
+#   - push a tag `v*`  -> publishes to PyPI (the real release). The tag name
+#     should match the version in pyproject.toml, e.g. `v0.1.0`.
+#   - manual `workflow_dispatch` -> pick the target from the dropdown:
+#       - testpypi (default): https://test.pypi.org/
+#       - pypi               : https://pypi.org/ (real, permanent)
 #
-# Required secrets (Settings -> Secrets and variables -> Actions):
-#   TESTPYPI_TOKEN  test.pypi.org API token (username is __token__)
-#   PYPI_TOKEN      pypi.org API token (username is __token__; only needed to
-#                   select the "pypi" target)
+# Nothing is uploaded unless the `test` job (the full suite) passes.
+#
+# Authentication:
+#   - testpypi uses an API token, set the secret: TESTPYPI_TOKEN.
+#   - pypi uses OIDC Trusted Publishing (no token). Register a Trusted Publisher
+#     on pypi.org -> account side-bar -> Publishing -> Add trusted publisher:
+#       Owner: AECVerge, Repository: pygments-step,
+#       Workflow name: release.yml (the filename),
+#       Environment name: leave blank (this job has no `environment:`).
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       target:
@@ -52,6 +59,9 @@ jobs:
   publish:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for OIDC Trusted Publishing to PyPI
     steps:
       - uses: actions/checkout@v4
 
@@ -68,16 +78,26 @@ jobs:
       - name: Validate package metadata
         run: twine check dist/*
 
+      - name: Resolve publish target
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            target="${{ github.event.inputs.target }}"
+          else
+            # A `v*` tag push is an official release -> publish to PyPI.
+            target="pypi"
+          fi
+          echo "value=$target" >> "$GITHUB_OUTPUT"
+
       - name: Publish to TestPyPI
-        if: github.event.inputs.target == 'testpypi'
+        if: steps.target.outputs.value == 'testpypi'
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
         run: twine upload -r testpypi dist/*
 
       - name: Publish to PyPI
-        if: github.event.inputs.target == 'pypi'
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine upload dist/*
+        if: steps.target.outputs.value == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist

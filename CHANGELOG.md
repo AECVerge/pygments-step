@@ -9,20 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Rendered production-test pages for both lexers under `docs/express` and
-  `docs/step` (keywords, operators, types, declarations, constants, built-ins,
-  literals, remarks / entities, enumerations, directives, comments), plus
-  `tests/test_docs_pages.py`, which asserts every code fence on the pages lexes
-  with zero `Error` tokens and that each page really covers its token family.
-- GitHub Actions workflows: `ci.yml` (tests + strict docs build) and
-  `release.yml` (build + publish to TestPyPI, or to PyPI via a workflow input).
+- The `release` workflow now publishes automatically when a `v*` tag is pushed,
+  targeting PyPI; the manual `workflow_dispatch` keeps the `testpypi` / `pypi`
+  target choice.
 
 ### Changed
 
-- The source distribution (sdist) no longer carries `tests/` (or `docs/`,
-  `.github/`, build artifacts). A `MANIFEST.in` now pins the sdist contents so
-  test sources cannot leak in. The wheel is unaffected: it always contained only
-  the `pygments_step` package.
+- Publishing to PyPI now uses OIDC Trusted Publishing
+  (`pypa/gh-action-pypi-publish` with `id-token: write`), so the `PYPI_TOKEN`
+  secret is no longer needed; TestPyPI still uses an API token.
 
 ## [0.1.0] - 2026-09-01
 
@@ -66,6 +61,20 @@ Initial release.
   regressions for both lexers, asserting that neither fixture produces an
   `Error` token. Runs under `pytest` or standalone via
   `python tests/test_lexers.py`.
+- Rendered production-test pages for both lexers under `docs/express` and
+  `docs/step` (keywords, operators, types, declarations, constants, built-ins,
+  literals, remarks / entities, enumerations, directives, comments), plus
+  `tests/test_docs_pages.py`, which asserts every code fence on the pages lexes
+  with zero `Error` tokens and that each page really covers its token family.
+- GitHub Actions workflows: `ci.yml` (tests + strict docs build) and
+  `release.yml` (build + publish to TestPyPI, or to PyPI via a workflow input).
+
+### Changed
+
+- The source distribution (sdist) no longer carries `tests/` (or `docs/`,
+  `.github/`, build artifacts). A `MANIFEST.in` now pins the sdist contents so
+  test sources cannot leak in. The wheel is unaffected: it always contained only
+  the `pygments_step` package.
 
 ### Notes
 
