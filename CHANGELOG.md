@@ -5,21 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- The `release` workflow now publishes automatically when a `v*` tag is pushed,
-  targeting PyPI; the manual `workflow_dispatch` keeps the `testpypi` / `pypi`
-  target choice.
-
-### Changed
-
-- Publishing to PyPI now uses OIDC Trusted Publishing
-  (`pypa/gh-action-pypi-publish` with `id-token: write`), so the `PYPI_TOKEN`
-  secret is no longer needed; TestPyPI still uses an API token.
-
-## [0.1.0] - 2026-09-01
+## [0.1.0] - 2026-09-02
 
 Initial release.
 
@@ -67,7 +53,9 @@ Initial release.
   `tests/test_docs_pages.py`, which asserts every code fence on the pages lexes
   with zero `Error` tokens and that each page really covers its token family.
 - GitHub Actions workflows: `ci.yml` (tests + strict docs build) and
-  `release.yml` (build + publish to TestPyPI, or to PyPI via a workflow input).
+  `release.yml` (build + publish to TestPyPI or PyPI). The `release` workflow
+  publishes automatically when a `v*` tag is pushed, targeting PyPI, while the
+  manual `workflow_dispatch` keeps the `testpypi` / `pypi` target choice.
 
 ### Changed
 
@@ -75,6 +63,9 @@ Initial release.
   `.github/`, build artifacts). A `MANIFEST.in` now pins the sdist contents so
   test sources cannot leak in. The wheel is unaffected: it always contained only
   the `pygments_step` package.
+- Publishing to PyPI now uses OIDC Trusted Publishing
+  (`pypa/gh-action-pypi-publish` with `id-token: write`), so the `PYPI_TOKEN`
+  secret is no longer needed; TestPyPI still uses an API token.
 
 ### Notes
 
@@ -84,5 +75,4 @@ protocol. Consequently `ifc` and `*.ifc` are **not** claimed as an alias or
 filename pattern — IFC is only one of many SPF-based formats. Use `step21`
 (or `p21` / `spf`) for IFC content.
 
-[Unreleased]: https://github.com/AECVerge/pygments-step/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/AECVerge/pygments-step/releases/tag/v0.1.0

@@ -15,13 +15,18 @@ concurrency:
 
 jobs:
   test:
+    name: test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       # Install the package (editable) so Pygments discovers the `express` and
       # `step21` lexers through entry points. Tests, including the docs-page
@@ -32,8 +37,24 @@ jobs:
       - name: Run tests
         run: pytest -q
 
-      # Install the docs requirements so `mkdocs build --strict` can actually
-      # render the site; a failed lexing/linking turns the build red.
+  # The strict docs build is a separate job (run once, on the oldest supported
+  # Python) so it is not repeated for every matrix entry. It is gated on the
+  # full test matrix passing.
+  docs:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Install the package itself (editable) so the code fences on the demo page
+      # are highlighted by these lexers.
+      - name: Install pygments-step
+        run: pip install -e ".[test]"
+
       - name: Install documentation dependencies
         run: pip install -r requirements-docs.txt
 

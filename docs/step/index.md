@@ -6,16 +6,12 @@ title: STEP tests
 
 These pages are a rendered, exhaustive corpus for the `StepFileLexer`
 (`pygments_step.step21`), the lexer for ISO 10303-21 (Part 21) exchange files.
-Like the [EXPRESS tests](../express/index.md), every page is a *production
-test*: the snippets are highlighted and **must lex cleanly**, and two layers of
-automation keep them honest.
-
-1. **The docs build.** The site is built with `mkdocs build --strict` in the
-   `docs` GitHub Actions workflow, so a lexing or linking error blocks the
-   deploy.
-2. **The pytest suite.** `tests/test_docs_pages.py` parses every `step21`
-   fence on these pages and asserts the lexer produces **zero `Error`** tokens,
-   and that each page really contains the whole family of tokens it claims.
+Like the [EXPRESS tests](../express/index.md), every page here is a *production
+test*: the snippets are highlighted and **must lex cleanly**, enforced by the same
+two gates described on that page — the strict `mkdocs build` in the `docs`
+GitHub Actions workflow, and `tests/test_docs_pages.py`, which parses every
+`step21` fence for **zero `Error`** tokens and checks that each page really
+covers the token family it claims.
 
 `StepFileLexer` is **schema-agnostic**: entity names are lexed structurally, so
 these examples work for IFC, AP203, AP214 or any other Part 21 schema.
