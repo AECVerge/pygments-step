@@ -29,7 +29,6 @@ class StepFileLexer(RegexLexer):
     filenames = ["*.p21", "*.stp", "*.step"]
     mimetypes = ["application/x-step", "model/step"]
     url = "https://en.wikipedia.org/wiki/ISO_10303-21"
-    version_added = "0.1"
 
     flags = re.IGNORECASE | re.MULTILINE
 

@@ -20,7 +20,6 @@ class ExpressLexer(RegexLexer):
     filenames = ["*.exp"]
     mimetypes = ["text/x-express"]
     url = "https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)"
-    version_added = "0.1"
 
     # EXPRESS keywords are case insensitive (ISO 10303-11, clause 7).
     flags = re.IGNORECASE | re.MULTILINE
