@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Rendered production-test pages for both lexers under `docs/express` and
+  `docs/step` (keywords, operators, types, declarations, constants, built-ins,
+  literals, remarks / entities, enumerations, directives, comments), plus
+  `tests/test_docs_pages.py`, which asserts every code fence on the pages lexes
+  with zero `Error` tokens and that each page really covers its token family.
+- GitHub Actions workflows: `ci.yml` (tests + strict docs build) and
+  `release.yml` (build + publish to TestPyPI, or to PyPI via a workflow input).
+
+### Changed
+
+- The source distribution (sdist) no longer carries `tests/` (or `docs/`,
+  `.github/`, build artifacts). A `MANIFEST.in` now pins the sdist contents so
+  test sources cannot leak in. The wheel is unaffected: it always contained only
+  the `pygments_step` package.
+
 ## [0.1.0] - 2026-09-01
 
 Initial release.

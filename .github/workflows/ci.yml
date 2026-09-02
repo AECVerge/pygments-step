@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Install the package (editable) so Pygments discovers the `express` and
+      # `step21` lexers through entry points. Tests, including the docs-page
+      # lexing test (tests/test_docs_pages.py), rely on this.
+      - name: Install pygments-step
+        run: pip install -e ".[test]"
+
+      - name: Run tests
+        run: pytest -q
+
+      # Install the docs requirements so `mkdocs build --strict` can actually
+      # render the site; a failed lexing/linking turns the build red.
+      - name: Install documentation dependencies
+        run: pip install -r requirements-docs.txt
+
+      - name: Build documentation (strict)
+        run: mkdocs build --strict

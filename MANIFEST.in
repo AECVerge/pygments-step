@@ -1,0 +1,20 @@
+# Source distribution manifest.
+#
+# The *wheel* is constrained by `[tool.setuptools] packages = ["pygments_step"]`,
+# so it never carries tests or docs. The *sdist*, however, is built by setuptools
+# from a file manifest, and with no MANIFEST.in its default template also sweeps
+# in project test sources (that is why tests/ used to appear in the sdist, even
+# though the fixtures did not). This file pins the sdist down to the package plus
+# the standard metadata, and prunes development-only content.
+
+include README.md
+include LICENSE
+include CHANGELOG.md
+include pyproject.toml
+
+# Development-only content stays out of the source distribution.
+prune tests
+prune docs
+prune .github
+prune .venv
+prune dist
