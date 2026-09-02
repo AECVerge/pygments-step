@@ -1,0 +1,41 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Install the package itself (editable) so that Pygments discovers the
+      # `express` and `step21` lexers through entry points. Without this the
+      # code fences on the demo page would not be highlighted.
+      - name: Install pygments-step
+        run: pip install -e ".[test]"
+
+      - name: Install documentation dependencies
+        run: pip install -r requirements-docs.txt
+
+      # --strict turns any lexing or linking error into a failure, which makes
+      # the doc build a production test: if a snippet fails to lex, the deploy
+      # does not happen.
+      - name: Build site
+        run: mkdocs build --strict
+
+      - name: Deploy to GitHub Pages (gh-pages)
+        run: mkdocs gh-deploy --force
