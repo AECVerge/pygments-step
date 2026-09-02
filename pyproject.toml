@@ -37,7 +37,7 @@ classifiers = [
 dependencies = ["Pygments>=2.14"]
 
 [project.urls]
-Homepage = "https://github.com/AECVerge/pygments-step"
+Homepage = "https://AECVerge.github.io/pygments-step"
 Repository = "https://github.com/AECVerge/pygments-step"
 Issues = "https://github.com/AECVerge/pygments-step/issues"
 
