@@ -3,6 +3,9 @@ __pycache__/
 build/
 dist/
 temp/
+.venv/
+.uv-cache/
+.pytest_cache/
 
 # MkDocs build artifacts
 site/
