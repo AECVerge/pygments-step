@@ -9,7 +9,7 @@ Sessions:
 
 Both sessions run on the current interpreter (no virtualenv) because they only
 edit files and call ``git``; neither needs the package installed. Run them with
-``nox`` (or ``pyp -m nox`` if installed), e.g.::
+``nox``::
 
     nox -s bump -- 0.2.0
     nox -s release -- 0.2.0
@@ -26,8 +26,26 @@ import nox
 ROOT = pathlib.Path(__file__).parent
 
 
+def _git_out(*args: str) -> str:
+    """Run a git command and return its trimmed stdout."""
+    proc = subprocess.run(
+        ["git", *args], check=True, cwd=str(ROOT),
+        capture_output=True, text=True,
+    )
+    return proc.stdout.strip()
+
+
 def _run_git(*args: str) -> None:
+    """Run a git command, streaming output and raising on failure."""
     subprocess.run(["git", *args], check=True, cwd=str(ROOT))
+
+
+def _tag_exists(tag: str) -> bool:
+    proc = subprocess.run(
+        ["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"],
+        cwd=str(ROOT), capture_output=True,
+    )
+    return proc.returncode == 0
 
 
 def _current_version() -> str:
@@ -76,8 +94,44 @@ def release(session: nox.Session) -> None:
     if not session.posargs:
         session.error("usage: nox -s release -- <version>")
         return
-    tag = "v" + session.posargs[0].lstrip("v")
+    new_version = session.posargs[0].lstrip("v")
+    tag = "v" + new_version
 
+    # --- safety checks ---------------------------------------------------
+    branch = _git_out("rev-parse", "--abbrev-ref", "HEAD")
+    if branch != "main":
+        session.error(
+            f"You are on '{branch}', not 'main'. Check out main and pull the "
+            "release commit before releasing."
+        )
+
+    dirty = _git_out("status", "--porcelain")
+    if dirty:
+        session.error(
+            "The working tree has uncommitted changes. Commit them (and add the "
+            "CHANGELOG entry) before creating the release tag."
+        )
+
+    version_in_project = _current_version()
+    if version_in_project != new_version:
+        session.error(
+            f"pyproject.toml is at version {version_in_project}, but you asked "
+            f"to release {new_version}. Run 'nox -s bump -- {new_version}' (and "
+            "commit it) first."
+        )
+
+    _run_git("fetch", "origin", "main")
+    behind = _git_out("rev-list", "--count", "main..origin/main")
+    if behind != "0":
+        session.error(
+            f"Your local main is {behind} commit(s) behind origin/main. Run "
+            "'git pull' before releasing."
+        )
+
+    if _tag_exists(tag):
+        session.error(f"The tag {tag} already exists locally.")
+
+    # --- the actual release ---------------------------------------------
     session.log("Pushing main so the release commit is on GitHub ...")
     _run_git("push", "origin", "main")
 
