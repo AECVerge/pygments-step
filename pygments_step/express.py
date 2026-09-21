@@ -93,8 +93,9 @@ class ExpressLexer(RegexLexer):
             # name makes this rule fail, so the bare head rule below tokenises
             # the head on its own and the reserved word keeps its own token.
             (words(_DECL, prefix=r"\b",
-                   suffix=r"\b(\s+)(?!(?:" + _RESERVED_ALT + r")\b)([a-z][a-z0-9_]*)"),
-             bygroups(Keyword.Declaration, Whitespace, Name.Class)),
+                suffix=r"\b(\s+)(?!(?:" + _RESERVED_ALT + r")\b)([a-z][a-z0-9_]*)"),
+                bygroups(Keyword.Declaration, Whitespace, Name.Class)
+            ),
             (words(_DECL, prefix=r"\b", suffix=r"\b"), Keyword.Declaration),
             (words(_CONSTANTS, prefix=r"\b", suffix=r"\b"), Keyword.Constant),
             (words(_TYPES, prefix=r"\b", suffix=r"\b"), Keyword.Type),
@@ -124,6 +125,11 @@ class ExpressLexer(RegexLexer):
         "string": [
             (r"''", String.Escape),
             (r"'", String.Single, "#pop"),
-            (r"[^']+", String.Single),
+            # A string literal never spans a physical line boundary (clause
+            # 7.5.4), so a missing closing quote must not turn the rest of the
+            # file into string text: the newline ends the runaway literal and
+            # the next line lexes normally again.
+            (r"[^'\n]+", String.Single),
+            (r"\n", String.Single, "#pop"),
         ],
     }

@@ -97,6 +97,19 @@ def test_express_literals():
     assert (String.Other, '"000000E9"') in pairs   # encoded string literal
 
 
+def test_express_unterminated_string_stops_at_the_line_end():
+    """A missing closing quote must not swallow the rest of the file.
+
+    A string literal never spans a physical line boundary (clause 7.5.4), so
+    the newline ends the runaway literal instead of everything after it.
+    """
+    pairs = list(ExpressLexer().get_tokens("s := 'oops\nx := 1;\n"))
+    assert "".join(v for t, v in pairs if t is String.Single) == "'oops\n"
+    assert (Name, "x") in pairs
+    assert (Number.Integer, "1") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+
 def test_express_declared_names():
     pairs = tokens_of(ExpressLexer(), "sample.exp")
     declared = {v for t, v in pairs if t is Name.Class}
