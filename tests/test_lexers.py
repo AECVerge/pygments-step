@@ -97,6 +97,22 @@ def test_express_literals():
     assert (String.Other, '"000000E9"') in pairs   # encoded string literal
 
 
+def test_express_encoded_string_literal_is_lexed_permissively():
+    """Colouring, not validating: any hex run in quotes is one string token.
+
+    Clause 7.5.4 wants whole characters, four octets each, but a partial group
+    must stay a single String.Other rather than being split into Error, a
+    number and an identifier.
+    """
+    lexer = ExpressLexer()
+    for src in ('"000000E9"', '"00000041000000E9"', '"1F2A3B"', '""'):
+        pairs = list(lexer.get_tokens(src))
+        assert (String.Other, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+    # A non-hexadecimal character is still not an encoded string literal.
+    assert (String.Other, '"0000004G"') not in list(lexer.get_tokens('"0000004G"'))
+
+
 def test_express_unterminated_string_stops_at_the_line_end():
     """A missing closing quote must not swallow the rest of the file.
 

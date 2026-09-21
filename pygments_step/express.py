@@ -104,7 +104,11 @@ class ExpressLexer(RegexLexer):
             (words(_BUILTINS, prefix=r"\b", suffix=r"\b(?=\s*\()"),
              Name.Builtin),
             (r"'", String.Single, "string"),
-            (r'"[0-9a-f]*"', String.Other),              # encoded string literal
+            # Encoded string literal. Clause 7.5.4 encodes each character as
+            # four octets, that is eight hexadecimal digits, but a lexer colours
+            # rather than validates: keeping a partial group as one string token
+            # beats splitting it into Error, a number and an identifier.
+            (r'"[0-9a-f]*"', String.Other),
             (r"%[01]+", Number.Bin),                     # binary literal
             (r"\d+\.\d*(e[+-]?\d+)?", Number.Float),
             (r"\d+", Number.Integer),
