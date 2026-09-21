@@ -86,10 +86,14 @@ class StepFileLexer(RegexLexer):
         ],
         "string": [
             (r"''", String.Escape),
+            # A single reverse solidus is written as two (table 2), so the
+            # doubled form is one escape rather than two characters.
+            (r"\\\\", String.Escape),
             # ISO 10303-21 table 4, string control directives:
-            # \S\ \P?\ \X\ \X2\..\X0\ \X4\..\X0\
+            # \S\ \P?\ \X\ \X2\..\X0\ \X4\..\X0\, the last two with one or more
+            # groups of four or eight hexadecimal digits.
             (r"\\S\\.|\\P[a-i]\\|\\X\\[0-9a-f]{2}|"
-             r"\\X2\\(?:[0-9a-f]{4})*\\X0\\|\\X4\\(?:[0-9a-f]{8})*\\X0\\",
+             r"\\X2\\(?:[0-9a-f]{4})+\\X0\\|\\X4\\(?:[0-9a-f]{8})+\\X0\\",
              String.Escape),
             # Table 6 print control directives are allowed within strings too.
             (r"\\[NF]\\", String.Escape),

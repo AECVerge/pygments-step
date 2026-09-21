@@ -321,6 +321,23 @@ def test_step_string_control_directives():
     assert "''" in escapes
 
 
+def test_step_string_reverse_solidus_is_doubled():
+    """Table 2 lists REVERSE_SOLIDUS REVERSE_SOLIDUS as one escape."""
+    pairs = list(StepFileLexer().get_tokens(r"'a\\b'"))
+    assert (String.Escape, "\\\\") in pairs
+
+
+def test_step_x2_and_x4_need_at_least_one_hex_group():
+    """Table 4: HEX_TWO { HEX_TWO } is one group or more, so not `\\X2\\\\X0\\`."""
+    lexer = StepFileLexer()
+    # The directive is the literal without its surrounding quotes.
+    for src in ("'\\X2\\\\X0\\'", "'\\X4\\\\X0\\'"):
+        assert (String.Escape, src[1:-1]) not in list(lexer.get_tokens(src)), src
+    for src in ("'\\X2\\00F8\\X0\\'", "'\\X2\\03B103B203B3\\X0\\'",
+                "'\\X4\\000000F8\\X0\\'"):
+        assert (String.Escape, src[1:-1]) in list(lexer.get_tokens(src)), src
+
+
 def test_step_entity_names_and_literals():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     names = {v for t, v in pairs if t is Name.Class}
