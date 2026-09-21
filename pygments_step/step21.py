@@ -36,10 +36,15 @@ class StepFileLexer(RegexLexer):
     flags = re.IGNORECASE | re.MULTILINE | re.ASCII
 
     # A token separator is space, a print control directive or a comment (clause
-    # 5.6). The basic alphabet is the bytes 32 to 126 (clause 5.2) and line
-    # delimiters are permitted but ignored, so tab, vertical tab and form feed
-    # are not separators.
-    _SEPARATOR = r"[ \n\r]"
+    # 5.6 in both editions). Space is the only whitespace character of the
+    # second edition's alphabet, whose 5.2 lets line delimiters through but
+    # requires them to be ignored; the third edition widens the alphabet to
+    # U+0020 to U+007E plus U+0080 to U+10FFFF and requires the octets outside
+    # it - line delimiters "and other control characters such as form feed or
+    # character tabulation (tab)" - to be ignored. So the whitespace-like
+    # controls separate tokens here; the stranger ones (NUL, ESC, DEL) stay
+    # errors, because they do not occur in practice and the error is useful.
+    _SEPARATOR = r"[ \t\n\r\f\v]"
 
     tokens = {
         "root": [

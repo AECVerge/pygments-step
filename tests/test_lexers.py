@@ -260,28 +260,28 @@ def test_express_unbounded_aggregate_bound():
 # STEP Part 21 specifics
 # --------------------------------------------------------------------------
 
-def test_step_whitespace_is_space_and_line_ends_only():
-    """A token separator is space (clause 5.6), not `\\s`.
+def test_step_whitespace_is_the_whitespace_like_control_set():
+    """Space plus the control characters the standards let a file ignore.
 
-    The basic alphabet is the bytes 32 to 126 (clause 5.2) and line delimiters
-    are permitted but ignored, so tab, vertical tab and form feed are not
-    separators.
+    The second edition (clause 5.6) makes space the only whitespace character
+    of its alphabet and ignores line delimiters; the third edition also ignores
+    "other control characters such as form feed or character tabulation (tab)".
     """
     lexer = StepFileLexer()
-    for ch in " \n":
+    for ch in " \t\n\x0b\x0c":
         pairs = list(lexer.get_tokens("#1=A(1);" + ch + "#2=B(2);"))
         assert (Whitespace, ch) in pairs, repr(ch)
-    for ch in "\t\x0b\x0c":
+    # Pygments folds CR into LF before the rules see the text.
+    assert (list(lexer.get_tokens("#1=A(1);\r#2=B(2);"))
+            == list(lexer.get_tokens("#1=A(1);\n#2=B(2);")))
+    # The other controls are not separators, and neither is a non-ASCII space.
+    for ch in "\x00\x1b\x7f\xa0":
         pairs = list(lexer.get_tokens("#1=A(1);" + ch + "#2=B(2);"))
         assert (Whitespace, ch) not in pairs, repr(ch)
         assert (Error, ch) in pairs, repr(ch)
-    # The lookaheads step over the same separators, so a tab is not one there.
-    pairs = list(lexer.get_tokens("#1\t= A(1);"))
-    assert (Name.Label, "#1") not in pairs
-    assert (Error, "\t") in pairs
-    pairs = list(lexer.get_tokens("A\t(1);"))
-    assert (Name.Class, "A") not in pairs
-    assert (Error, "\t") in pairs
+    # The lookaheads step over the same separators.
+    assert (Name.Label, "#1") in list(lexer.get_tokens("#1\t= A(1);"))
+    assert (Name.Class, "A") in list(lexer.get_tokens("A\t(1);"))
 
 
 def test_step_instance_definition_vs_reference():
