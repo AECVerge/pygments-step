@@ -37,7 +37,11 @@ class StepFileLexer(RegexLexer):
 
     tokens = {
         "root": [
-            (r"\s+", Whitespace),
+            # A token separator is space, a print control directive or a comment
+            # (clause 5.6). The basic alphabet is the bytes 32 to 126 (clause
+            # 5.2) and line delimiters are permitted but ignored, so tab,
+            # vertical tab and form feed are not separators.
+            (r"[ \n\r]+", Whitespace),
             (r"/\*", Comment.Multiline, "comment"),
             # Print control directives (table 6) may appear at any position
             # where a token separator may appear, not only inside strings

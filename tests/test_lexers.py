@@ -255,6 +255,23 @@ def test_express_unbounded_aggregate_bound():
 # STEP Part 21 specifics
 # --------------------------------------------------------------------------
 
+def test_step_whitespace_is_space_and_line_ends_only():
+    """A token separator is space (clause 5.6), not `\\s`.
+
+    The basic alphabet is the bytes 32 to 126 (clause 5.2) and line delimiters
+    are permitted but ignored, so tab, vertical tab and form feed are not
+    separators.
+    """
+    lexer = StepFileLexer()
+    for ch in " \n":
+        pairs = list(lexer.get_tokens("#1=A(1);" + ch + "#2=B(2);"))
+        assert (Whitespace, ch) in pairs, repr(ch)
+    for ch in "\t\x0b\x0c":
+        pairs = list(lexer.get_tokens("#1=A(1);" + ch + "#2=B(2);"))
+        assert (Whitespace, ch) not in pairs, repr(ch)
+        assert (Error, ch) in pairs, repr(ch)
+
+
 def test_step_instance_definition_vs_reference():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     assert (Name.Label, "#1") in pairs      # `#1=` is a definition
