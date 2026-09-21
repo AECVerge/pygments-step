@@ -119,8 +119,13 @@ class ExpressLexer(RegexLexer):
             # "?" is the indeterminate built-in constant (table 3), not an
             # operator, so it is matched before the operator character class.
             (r"\?", Keyword.Constant),
-            # Longest-first: `:=` must not shadow `:=:` (rel_op, clause 282).
-            (r":=:|:<>:|:=|<[*>=]?|>=?|<>|\*\*|\|\||[-+*/=|@\\]", Operator),
+            # Longest-first: `:=` must not shadow `:=:` (rel_op, clause 282), and
+            # the bare `<` and `>` sit in the character class so that `<*`,
+            # `<=`, `>=` and `<>` always win. `@` is a special character of the
+            # EXPRESS character set (clause 7.1.3), so it may appear inside a
+            # string, but it is no symbol of clause 7.3 table 6 and no clause 12
+            # operator is spelled with it, so it is not an operator here.
+            (r":<>:|:=:|:=|<\*|<=|>=|<>|\*\*|\|\||[<>+\-*/=|\\]", Operator),
             (r"[;:,.()\[\]{}]", Punctuation),
         ],
         "comment": [

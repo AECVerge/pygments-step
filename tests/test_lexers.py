@@ -173,6 +173,18 @@ def test_express_instance_comparison_operators():
         assert (Operator, op) in list(ExpressLexer().get_tokens(src)), src
 
 
+def test_express_at_sign_is_not_an_operator():
+    """`@` is a character of the EXPRESS character set, but not a symbol.
+
+    Clause 7.1.3 lists it among the special characters, so it is legal inside a
+    string literal, but clause 7.3 table 6 has no `@` and no operator uses it.
+    """
+    pairs = list(ExpressLexer().get_tokens("@x"))
+    assert (Operator, "@") not in pairs
+    assert (Error, "@") in pairs
+    assert (String.Single, "a@b") in list(ExpressLexer().get_tokens("'a@b'"))
+
+
 def test_express_fixed_keyword():
     """FIXED closes a width_spec: `STRING(n) FIXED` (ISO 10303-11)."""
     pairs = list(ExpressLexer().get_tokens("x : STRING(3) FIXED;"))
