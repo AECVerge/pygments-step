@@ -83,8 +83,11 @@ class ExpressLexer(RegexLexer):
 
     tokens = {
         "root": [
-            (r"\s+", Whitespace),
-            (r"--.*?$", Comment.Single),                 # tail remark
+            # Whitespace is the space character plus cells 09, 0A and 0D (clause
+            # 7.1.5), so not `\s`: that would also accept form feed and
+            # vertical tab, which have no role in the language.
+            (r"[ \t\n\r]+", Whitespace),
+            (r"--[^\n]*", Comment.Single),               # tail remark
             (r"\(\*", Comment.Multiline, "comment"),     # embedded remark
             # Declaration head: give the declared name its own token, but never
             # let it be one of the reserved words, or the name would eat the

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from pygments.lexers import get_lexer_by_name, get_lexer_for_filename
 from pygments.token import (Comment, Error, Keyword, Name, Number, Operator,
-                            Punctuation, String)
+                            Punctuation, String, Whitespace)
 
 from pygments_step import ExpressLexer, StepFileLexer
 
@@ -83,6 +83,23 @@ def test_express_remarks_nest():
     """`(* outer (* inner *) still outer *)` must stay entirely a comment."""
     pairs = tokens_of(ExpressLexer(), "sample.exp")
     assert "clause 7.1.6" in joined(pairs, Comment.Multiline)
+
+
+def test_express_whitespace_is_space_tab_and_line_ends():
+    """Whitespace is space plus cells 09, 0A and 0D (clauses 7.1.5.1-7.1.5.3).
+
+    Pygments folds CR into LF before the rules see the text, so a carriage
+    return only ever reaches the lexer as a newline.
+    """
+    lexer = ExpressLexer()
+    for ch in " \t\n":
+        assert (Whitespace, ch) in list(lexer.get_tokens("a" + ch + "b")), repr(ch)
+    assert list(lexer.get_tokens("a\rb")) == list(lexer.get_tokens("a\nb"))
+    # Form feed and vertical tab are neither whitespace nor symbols.
+    for ch in "\x0b\x0c":
+        pairs = list(lexer.get_tokens("a" + ch + "b"))
+        assert (Whitespace, ch) not in pairs, repr(ch)
+        assert (Error, ch) in pairs, repr(ch)
 
 
 def test_express_tail_remark():
