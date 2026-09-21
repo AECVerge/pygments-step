@@ -100,6 +100,11 @@ def test_express_whitespace_is_space_tab_and_line_ends():
         pairs = list(lexer.get_tokens("a" + ch + "b"))
         assert (Whitespace, ch) not in pairs, repr(ch)
         assert (Error, ch) in pairs, repr(ch)
+    # The declaration and built-in lookaheads step over the same separators.
+    for src in ("ENTITY\x0cpoint;", "SIZEOF\x0c(x)"):
+        pairs = list(lexer.get_tokens(src))
+        assert (Whitespace, "\x0c") not in pairs, src
+        assert (Error, "\x0c") in pairs, src
 
 
 def test_express_tail_remark():
@@ -270,6 +275,13 @@ def test_step_whitespace_is_space_and_line_ends_only():
         pairs = list(lexer.get_tokens("#1=A(1);" + ch + "#2=B(2);"))
         assert (Whitespace, ch) not in pairs, repr(ch)
         assert (Error, ch) in pairs, repr(ch)
+    # The lookaheads step over the same separators, so a tab is not one there.
+    pairs = list(lexer.get_tokens("#1\t= A(1);"))
+    assert (Name.Label, "#1") not in pairs
+    assert (Error, "\t") in pairs
+    pairs = list(lexer.get_tokens("A\t(1);"))
+    assert (Name.Class, "A") not in pairs
+    assert (Error, "\t") in pairs
 
 
 def test_step_instance_definition_vs_reference():

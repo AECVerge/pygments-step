@@ -35,13 +35,15 @@ class StepFileLexer(RegexLexer):
     # lexer above).
     flags = re.IGNORECASE | re.MULTILINE | re.ASCII
 
+    # A token separator is space, a print control directive or a comment (clause
+    # 5.6). The basic alphabet is the bytes 32 to 126 (clause 5.2) and line
+    # delimiters are permitted but ignored, so tab, vertical tab and form feed
+    # are not separators.
+    _SEPARATOR = r"[ \n\r]"
+
     tokens = {
         "root": [
-            # A token separator is space, a print control directive or a comment
-            # (clause 5.6). The basic alphabet is the bytes 32 to 126 (clause
-            # 5.2) and line delimiters are permitted but ignored, so tab,
-            # vertical tab and form feed are not separators.
-            (r"[ \n\r]+", Whitespace),
+            (_SEPARATOR + "+", Whitespace),
             (r"/\*", Comment.Multiline, "comment"),
             # Print control directives (table 6) may appear at any position
             # where a token separator may appear, not only inside strings
@@ -51,7 +53,7 @@ class StepFileLexer(RegexLexer):
             (words(("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE",
                     "SIGNATURE"), prefix=r"\b", suffix=r"\b"),
              Keyword.Reserved),
-            (r"#\d+(?=\s*=)", Name.Label),               # instance definition
+            (r"#\d+(?=" + _SEPARATOR + r"*=)", Name.Label),            # instance definition
             (r"#\d+", Name.Variable),                    # instance reference
             (r"'", String.Single, "string"),
             (r'"[0-9a-f]*"', Number.Hex),                # binary literal
@@ -59,7 +61,8 @@ class StepFileLexer(RegexLexer):
             (r"[$*]", Keyword.Constant),                 # unset / derived value
             (r"[+-]?\d+\.\d*(e[+-]?\d+)?", Number.Float),
             (r"[+-]?\d+", Number.Integer),
-            (r"!?[a-z_][a-z0-9_]*(?=\s*\()", Name.Class),  # entity / typed param
+            (r"!?[a-z_][a-z0-9_]*(?=" + _SEPARATOR + r"*\()",
+             Name.Class),                                # entity / typed param
             (r"!?[a-z_][a-z0-9_]*", Name),
             (r"[();,=]", Punctuation),
         ],

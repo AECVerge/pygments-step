@@ -81,12 +81,14 @@ class ExpressLexer(RegexLexer):
     ))
     _RESERVED_ALT = "|".join(re.escape(word) for word in _ALL_RESERVED)
 
+    # The separator set: the space character plus cells 09, 0A and 0D (clauses
+    # 7.1.5.1 and 7.1.5.3). Form feed and vertical tab are not whitespace, so
+    # `\s` must not be used wherever a separator is meant.
+    _SEPARATOR = r"[ \t\n\r]"
+
     tokens = {
         "root": [
-            # Whitespace is the space character plus cells 09, 0A and 0D (clause
-            # 7.1.5), so not `\s`: that would also accept form feed and
-            # vertical tab, which have no role in the language.
-            (r"[ \t\n\r]+", Whitespace),
+            (_SEPARATOR + "+", Whitespace),
             (r"--[^\n]*", Comment.Single),               # tail remark
             (r"\(\*", Comment.Multiline, "comment"),     # embedded remark
             # Declaration head: give the declared name its own token, but never
@@ -96,7 +98,8 @@ class ExpressLexer(RegexLexer):
             # name makes this rule fail, so the bare head rule below tokenises
             # the head on its own and the reserved word keeps its own token.
             (words(_DECL, prefix=r"\b",
-                suffix=r"\b(\s+)(?!(?:" + _RESERVED_ALT + r")\b)([a-z][a-z0-9_]*)"),
+                suffix=(r"\b(" + _SEPARATOR + r"+)(?!(?:" + _RESERVED_ALT
+                        + r")\b)([a-z][a-z0-9_]*)")),
                 bygroups(Keyword.Declaration, Whitespace, Name.Class)
             ),
             (words(_DECL, prefix=r"\b", suffix=r"\b"), Keyword.Declaration),
@@ -104,7 +107,8 @@ class ExpressLexer(RegexLexer):
             (words(_TYPES, prefix=r"\b", suffix=r"\b"), Keyword.Type),
             (words(_WORD_OPERATORS, prefix=r"\b", suffix=r"\b"), Operator.Word),
             (words(_KEYWORDS, prefix=r"\b", suffix=r"\b"), Keyword),
-            (words(_BUILTINS, prefix=r"\b", suffix=r"\b(?=\s*\()"),
+            (words(_BUILTINS, prefix=r"\b",
+                   suffix=r"\b(?=" + _SEPARATOR + r"*\()"),
              Name.Builtin),
             (r"'", String.Single, "string"),
             # Encoded string literal. Clause 7.5.4 encodes each character as
