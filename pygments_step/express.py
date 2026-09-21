@@ -22,7 +22,10 @@ class ExpressLexer(RegexLexer):
     url = "https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)"
 
     # EXPRESS keywords are case insensitive (ISO 10303-11, clause 7).
-    flags = re.IGNORECASE | re.MULTILINE
+    # re.ASCII keeps the lexical space ASCII-only, as the standard requires:
+    # without it ``\d`` and the case-insensitive ``[a-z]`` ranges also accept
+    # non-ASCII input (Arabic-Indic digits, KELVIN SIGN, long s).
+    flags = re.IGNORECASE | re.MULTILINE | re.ASCII
 
     _DECL = ("schema", "entity", "type", "function", "procedure", "rule",
              "constant", "subtype_constraint")

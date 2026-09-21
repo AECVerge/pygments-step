@@ -30,7 +30,10 @@ class StepFileLexer(RegexLexer):
     mimetypes = ["application/x-step", "model/step"]
     url = "https://en.wikipedia.org/wiki/ISO_10303-21"
 
-    flags = re.IGNORECASE | re.MULTILINE
+    # re.ASCII restricts ``\d``, ``\b`` and the case-insensitive character
+    # ranges to ASCII, matching the ISO 10303-21 lexical space (and the EXPRESS
+    # lexer above).
+    flags = re.IGNORECASE | re.MULTILINE | re.ASCII
 
     tokens = {
         "root": [
