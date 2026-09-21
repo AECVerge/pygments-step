@@ -21,15 +21,23 @@ class ExpressLexer(RegexLexer):
     mimetypes = ["text/x-express"]
     url = "https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)"
 
-    # EXPRESS keywords are case insensitive (ISO 10303-11, clause 7).
-    flags = re.IGNORECASE | re.MULTILINE
+    # EXPRESS keywords are case insensitive: a literal inside the syntax rules is
+    # case independent (ISO 10303-11:2004, clause 6.1), and annex A.1.1 states
+    # that a keyword may be given in upper, lower or mixed case.
+    # re.ASCII keeps the lexical space ASCII-only, as the standard requires:
+    # without it ``\d`` and the case-insensitive ``[a-z]`` ranges also accept
+    # non-ASCII input (Arabic-Indic digits, KELVIN SIGN, long s).
+    flags = re.IGNORECASE | re.MULTILINE | re.ASCII
 
     _DECL = ("schema", "entity", "type", "function", "procedure", "rule",
              "constant", "subtype_constraint")
 
+    # Statement keywords: table 1 minus the declaration heads (_DECL), which
+    # already carries CONSTANT, and minus the built-in type keywords (_TYPES).
+    # The three tuples therefore partition table 1 (8 + 52 + 17 = 77).
     _KEYWORDS = (
         "abstract", "alias", "as", "based_on", "begin", "by", "case",
-        "constant", "derive", "else", "end", "end_alias", "end_case",
+        "derive", "else", "end", "end_alias", "end_case",
         "end_constant", "end_entity", "end_function", "end_if", "end_local",
         "end_procedure", "end_repeat", "end_rule", "end_schema",
         "end_subtype_constraint", "end_type", "escape", "fixed", "for",
@@ -44,8 +52,8 @@ class ExpressLexer(RegexLexer):
     _WORD_OPERATORS = ("and", "andor", "div", "in", "like", "mod", "not",
                        "or", "xor")
 
-    # array, bag, list and set are all aggregation_types (clause 172), so they
-    # are classified together rather than split across Keyword/Keyword.Type.
+    # array, bag, list and set are all aggregation_types (syntax rule 172), so
+    # they are classified together rather than split across Keyword/Keyword.Type.
     _TYPES = ("aggregate", "array", "bag", "binary", "boolean", "enumeration",
               "extensible", "generic", "generic_entity", "integer", "list",
               "logical", "number", "real", "select", "set", "string")
@@ -62,32 +70,71 @@ class ExpressLexer(RegexLexer):
         "value_in", "value_unique",
     )
 
+    # Every reserved word of ISO 10303-11 clause 7.2 except the indeterminate
+    # constant "?" (tables 1 to 5): clause 7.2 forbids all of them as
+    # identifiers, and the declaration rule uses this set to keep a head from
+    # swallowing the next reserved word as the declared name. Table 3's "?" is
+    # left out because a declared name always starts with a letter.
+    # Longest first, so a shorter word can never shadow a longer one.
+    _ALL_RESERVED = tuple(sorted(
+        set(_DECL + _KEYWORDS + _WORD_OPERATORS + _TYPES + _CONSTANTS
+            + _BUILTINS),
+        key=lambda word: (-len(word), word),
+    ))
+    _RESERVED_ALT = "|".join(re.escape(word) for word in _ALL_RESERVED)
+
+    # The separator set: the space character plus cells 09, 0A and 0D (clauses
+    # 7.1.5.1 and 7.1.5.3). Form feed and vertical tab are not whitespace, so
+    # `\s` must not be used wherever a separator is meant.
+    _SEPARATOR = r"[ \t\n\r]"
+
     tokens = {
         "root": [
-            (r"\s+", Whitespace),
-            (r"--.*?$", Comment.Single),                 # tail remark
+            (_SEPARATOR + "+", Whitespace),
+            (r"--[^\n]*", Comment.Single),               # tail remark
             (r"\(\*", Comment.Multiline, "comment"),     # embedded remark
-            # Declaration head: give the declared name its own token.
-            (words(_DECL, prefix=r"\b", suffix=r"\b(\s+)([a-z_]\w*)"),
-             bygroups(Keyword.Declaration, Whitespace, Name.Class)),
+            # Declaration head: give the declared name its own token, but never
+            # let it be one of the reserved words, or the name would eat the
+            # next token: `ENTITY ENUMERATION` is a declaration head followed
+            # by a type keyword, not an entity called ENUMERATION. A rejected
+            # name makes this rule fail, so the bare head rule below tokenises
+            # the head on its own and the reserved word keeps its own token.
+            (words(_DECL, prefix=r"\b",
+                suffix=(r"\b(" + _SEPARATOR + r"+)(?!(?:" + _RESERVED_ALT
+                        + r")\b)([a-z][a-z0-9_]*)")),
+                bygroups(Keyword.Declaration, Whitespace, Name.Class)
+            ),
             (words(_DECL, prefix=r"\b", suffix=r"\b"), Keyword.Declaration),
             (words(_CONSTANTS, prefix=r"\b", suffix=r"\b"), Keyword.Constant),
             (words(_TYPES, prefix=r"\b", suffix=r"\b"), Keyword.Type),
             (words(_WORD_OPERATORS, prefix=r"\b", suffix=r"\b"), Operator.Word),
             (words(_KEYWORDS, prefix=r"\b", suffix=r"\b"), Keyword),
-            (words(_BUILTINS, prefix=r"\b", suffix=r"\b(?=\s*\()"),
+            (words(_BUILTINS, prefix=r"\b",
+                   suffix=r"\b(?=" + _SEPARATOR + r"*\()"),
              Name.Builtin),
             (r"'", String.Single, "string"),
-            (r'"[0-9a-f]*"', String.Other),              # encoded string literal
+            # Encoded string literal. Clause 7.5.4 encodes each character as
+            # four octets, that is eight hexadecimal digits, but a lexer colours
+            # rather than validates: keeping a partial group as one string token
+            # beats splitting it into Error, a number and an identifier.
+            (r'"[0-9a-f]*"', String.Other),
             (r"%[01]+", Number.Bin),                     # binary literal
             (r"\d+\.\d*(e[+-]?\d+)?", Number.Float),
             (r"\d+", Number.Integer),
-            (r"[a-z_]\w*", Name),
+            # Identifier: clause 7.4 requires a letter first, then any mix of
+            # letters, digits and underscore (simple_id), so a leading
+            # underscore is not part of an identifier.
+            (r"[a-z][a-z0-9_]*", Name),
             # "?" is the indeterminate built-in constant (table 3), not an
             # operator, so it is matched before the operator character class.
             (r"\?", Keyword.Constant),
-            # Longest-first: `:=` must not shadow `:=:` (rel_op, clause 282).
-            (r":=:|:<>:|:=|<[*>=]?|>=?|<>|\*\*|\|\||[-+*/=|@\\]", Operator),
+            # Longest-first: `:=` must not shadow `:=:` (rel_op, syntax rule 282),
+            # and the bare `<` and `>` sit in the character class so that `<*`,
+            # `<=`, `>=` and `<>` always win. `@` is a special character of the
+            # EXPRESS character set (clause 7.1.3), so it may appear inside a
+            # string, but it is no symbol of clause 7.3 table 6 and no clause 12
+            # operator is spelled with it, so it is not an operator here.
+            (r":<>:|:=:|:=|<\*|<=|>=|<>|\*\*|\|\||[<>+\-*/=|\\]", Operator),
             (r"[;:,.()\[\]{}]", Punctuation),
         ],
         "comment": [
@@ -99,6 +146,11 @@ class ExpressLexer(RegexLexer):
         "string": [
             (r"''", String.Escape),
             (r"'", String.Single, "#pop"),
-            (r"[^']+", String.Single),
+            # A string literal never spans a physical line boundary (clause
+            # 7.5.4), so a missing closing quote must not turn the rest of the
+            # file into string text: the newline ends the runaway literal and
+            # the next line lexes normally again.
+            (r"[^'\n]+", String.Single),
+            (r"\n", String.Single, "#pop"),
         ],
     }

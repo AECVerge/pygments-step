@@ -16,4 +16,4 @@ from pygments_step.express import ExpressLexer
 from pygments_step.step21 import StepFileLexer
 
 __all__ = ["ExpressLexer", "StepFileLexer"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

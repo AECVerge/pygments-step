@@ -71,7 +71,7 @@ the command line:
 pygmentize -l step21 sample.p21
 ```
 
-<!-- gif -->
+![Running pygmentize -l step21 sample.ifc in a Visual Studio Code terminal](assets/demo-step21.gif)
 
 ## All registered aliases
 

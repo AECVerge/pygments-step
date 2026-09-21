@@ -118,7 +118,7 @@ pygmentize schema.exp
 
 ### EXPRESS (ISO 10303-11)
 
-- Case-insensitive keywords, per clause 7.
+- Case-insensitive keywords, per clause 6.1 and annex A.1.1.
 - Nested `(* ... (* ... *) ... *)` embedded remarks and `-- ...` tail remarks.
 - Declaration heads (`SCHEMA`, `ENTITY`, `TYPE`, `FUNCTION`, `PROCEDURE`,
   `RULE`, `CONSTANT`, `SUBTYPE_CONSTRAINT`) highlight the declared name

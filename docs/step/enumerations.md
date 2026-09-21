@@ -4,15 +4,16 @@ title: Enumerations
 
 # Enumerations
 
-Indexed enumeration values are written between two dots, e.g. `.T.` and
-`.UNSPECIFIED.`, and are emitted as `Name.Constant`. The unset value `$` and the
-derived value `*` are emitted as `Keyword.Constant`.
+Indexed enumeration values are written between two dots, e.g. `.T.`,
+`.UNSPECIFIED.` and `.LOADING_3D.`, and are emitted as `Name.Constant`. The unset
+value `$` and the derived value `*` are emitted as `Keyword.Constant`.
 
 ```step21 title="enumeration values"
 .T.
 .F.
 .UNSPECIFIED.
 .NOTDEFINED.
+.LOADING_3D.
 ```
 
 ```step21 title="unset and derived values"

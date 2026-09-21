@@ -22,7 +22,8 @@ when followed by `(` — so `CARTESIAN_POINT(`, `AXIS2_PLACEMENT_3D(` and
 
 ## User-defined keywords
 
-A `!`-prefixed identifier is a user-defined keyword (ISO 10303-21 clause 5.3.1).
+A `!`-prefixed identifier is a user-defined keyword (clause 6.2, numbered 6.3 in
+the third edition).
 `!USER_DEFINED_KEYWORD(` is a class name; a bare `!USER_DEFINED_KEYWORD` is a
 plain name.
 

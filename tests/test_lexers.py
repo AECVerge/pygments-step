@@ -9,12 +9,13 @@ over the network, so they cannot serve as a reproducible test corpus.
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
 from pygments.lexers import get_lexer_by_name, get_lexer_for_filename
 from pygments.token import (Comment, Error, Keyword, Name, Number, Operator,
-                            Punctuation, String)
+                            Punctuation, String, Whitespace)
 
 from pygments_step import ExpressLexer, StepFileLexer
 
@@ -84,6 +85,28 @@ def test_express_remarks_nest():
     assert "clause 7.1.6" in joined(pairs, Comment.Multiline)
 
 
+def test_express_whitespace_is_space_tab_and_line_ends():
+    """Whitespace is space plus cells 09, 0A and 0D (clauses 7.1.5.1-7.1.5.3).
+
+    Pygments folds CR into LF before the rules see the text, so a carriage
+    return only ever reaches the lexer as a newline.
+    """
+    lexer = ExpressLexer()
+    for ch in " \t\n":
+        assert (Whitespace, ch) in list(lexer.get_tokens("a" + ch + "b")), repr(ch)
+    assert list(lexer.get_tokens("a\rb")) == list(lexer.get_tokens("a\nb"))
+    # Form feed and vertical tab are neither whitespace nor symbols.
+    for ch in "\x0b\x0c":
+        pairs = list(lexer.get_tokens("a" + ch + "b"))
+        assert (Whitespace, ch) not in pairs, repr(ch)
+        assert (Error, ch) in pairs, repr(ch)
+    # The declaration and built-in lookaheads step over the same separators.
+    for src in ("ENTITY\x0cpoint;", "SIZEOF\x0c(x)"):
+        pairs = list(lexer.get_tokens(src))
+        assert (Whitespace, "\x0c") not in pairs, src
+        assert (Error, "\x0c") in pairs, src
+
+
 def test_express_tail_remark():
     pairs = tokens_of(ExpressLexer(), "sample.exp")
     assert any("tail remark" in v for t, v in pairs if t is Comment.Single)
@@ -96,6 +119,46 @@ def test_express_literals():
     assert (String.Other, '"000000E9"') in pairs   # encoded string literal
 
 
+def test_express_encoded_string_literal_is_lexed_permissively():
+    """Colouring, not validating: any hex run in quotes is one string token.
+
+    Clause 7.5.4 wants whole characters, four octets each, but a partial group
+    must stay a single String.Other rather than being split into Error, a
+    number and an identifier.
+    """
+    lexer = ExpressLexer()
+    for src in ('"000000E9"', '"00000041000000E9"', '"1F2A3B"', '""'):
+        pairs = list(lexer.get_tokens(src))
+        assert (String.Other, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+    # A non-hexadecimal character is still not an encoded string literal.
+    assert (String.Other, '"0000004G"') not in list(lexer.get_tokens('"0000004G"'))
+
+
+def test_express_unterminated_string_stops_at_the_line_end():
+    """A missing closing quote must not swallow the rest of the file.
+
+    A string literal never spans a physical line boundary (clause 7.5.4), so
+    the newline ends the runaway literal instead of everything after it.
+    """
+    pairs = list(ExpressLexer().get_tokens("s := 'oops\nx := 1;\n"))
+    assert "".join(v for t, v in pairs if t is String.Single) == "'oops\n"
+    assert (Name, "x") in pairs
+    assert (Number.Integer, "1") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+
+def test_express_identifier_starts_with_a_letter():
+    """`simple_id` = letter { letter | digit | "_" } (ISO 10303-11 clause 7.4)."""
+    lexer = ExpressLexer()
+    for src in ("cartesian_point", "a_b1", "x1"):
+        assert (Name, src) in list(lexer.get_tokens(src)), src
+    # A leading underscore is not part of an identifier.
+    pairs = list(lexer.get_tokens("_x"))
+    assert (Name, "_x") not in pairs
+    assert (Error, "_") in pairs
+
+
 def test_express_declared_names():
     pairs = tokens_of(ExpressLexer(), "sample.exp")
     declared = {v for t, v in pairs if t is Name.Class}
@@ -103,10 +166,45 @@ def test_express_declared_names():
     assert (Keyword.Declaration, "ENTITY") in pairs
 
 
+def test_express_declaration_head_does_not_swallow_a_reserved_word():
+    """`ENTITY ENUMERATION` declares nothing: ENUMERATION is a type keyword."""
+    pairs = list(ExpressLexer().get_tokens("ENTITY ENUMERATION;"))
+    assert (Keyword.Declaration, "ENTITY") in pairs
+    assert (Keyword.Type, "ENUMERATION") in pairs
+    assert (Name.Class, "ENUMERATION") not in pairs
+
+
+def test_express_bare_declaration_heads_stay_heads():
+    """Back-to-back heads, as on the declarations page, are all heads."""
+    heads = ["SCHEMA", "ENTITY", "TYPE", "FUNCTION", "PROCEDURE", "RULE",
+             "CONSTANT", "SUBTYPE_CONSTRAINT"]
+    pairs = list(ExpressLexer().get_tokens("\n".join(heads)))
+    assert [v for t, v in pairs if t is Keyword.Declaration] == heads
+    assert [v for t, v in pairs if t is Name.Class] == []
+
+
+def test_express_declared_name_is_an_identifier():
+    """The name may start *like* a keyword, but not be one, and needs a letter."""
+    assert (Name.Class, "types") in list(ExpressLexer().get_tokens("TYPE types;"))
+    assert (Name.Class, "_x") not in list(ExpressLexer().get_tokens("ENTITY _x;"))
+
+
 def test_express_instance_comparison_operators():
     """`:=:` must not be shadowed by `:=` (ISO 10303-11 rel_op)."""
     for src, op in (("a :=: b", ":=:"), ("a :<>: b", ":<>:")):
         assert (Operator, op) in list(ExpressLexer().get_tokens(src)), src
+
+
+def test_express_at_sign_is_not_an_operator():
+    """`@` is a character of the EXPRESS character set, but not a symbol.
+
+    Clause 7.1.3 lists it among the special characters, so it is legal inside a
+    string literal, but clause 7.3 table 6 has no `@` and no operator uses it.
+    """
+    pairs = list(ExpressLexer().get_tokens("@x"))
+    assert (Operator, "@") not in pairs
+    assert (Error, "@") in pairs
+    assert (String.Single, "a@b") in list(ExpressLexer().get_tokens("'a@b'"))
 
 
 def test_express_fixed_keyword():
@@ -162,6 +260,39 @@ def test_express_unbounded_aggregate_bound():
 # STEP Part 21 specifics
 # --------------------------------------------------------------------------
 
+def test_step_whitespace_is_the_whitespace_like_control_set():
+    """Space plus the control characters the standards let a file ignore.
+
+    The second edition (clause 5.6) makes space the only whitespace character
+    of its alphabet and ignores line delimiters; the third edition also ignores
+    "other control characters such as form feed or character tabulation (tab)".
+    """
+    lexer = StepFileLexer()
+    for ch in " \t\n\x0b\x0c":
+        pairs = list(lexer.get_tokens("#1=A(1);" + ch + "#2=B(2);"))
+        assert (Whitespace, ch) in pairs, repr(ch)
+    # Pygments folds CR into LF before the rules see the text.
+    assert (list(lexer.get_tokens("#1=A(1);\r#2=B(2);"))
+            == list(lexer.get_tokens("#1=A(1);\n#2=B(2);")))
+    # The other controls are not separators, and neither is a non-ASCII space.
+    for ch in "\x00\x1b\x7f\xa0":
+        pairs = list(lexer.get_tokens("#1=A(1);" + ch + "#2=B(2);"))
+        assert (Whitespace, ch) not in pairs, repr(ch)
+        assert (Error, ch) in pairs, repr(ch)
+    # The lookaheads step over the same separators.
+    assert (Name.Label, "#1") in list(lexer.get_tokens("#1\t= A(1);"))
+    assert (Name.Class, "A") in list(lexer.get_tokens("A\t(1);"))
+
+
+def test_step_section_keywords_are_reserved():
+    """Clause 6.1, 6.2 in the third edition: the section keywords."""
+    lexer = StepFileLexer()
+    for word in ("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE"):
+        assert (Keyword.Reserved, word) in list(lexer.get_tokens(word)), word
+    for word in ("ISO-10303-21", "END-ISO-10303-21"):
+        assert (Keyword.Namespace, word) in list(lexer.get_tokens(word)), word
+
+
 def test_step_instance_definition_vs_reference():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     assert (Name.Label, "#1") in pairs      # `#1=` is a definition
@@ -176,11 +307,45 @@ def test_step_enumerations_and_unset():
     assert (Keyword.Constant, "*") in pairs   # derived
 
 
+def test_step_enumeration_values_may_contain_underscores():
+    """The alphabet's UPPER subset contains the underscore (table 1)."""
+    lexer = StepFileLexer()
+    for value in (".T.", ".NOTDEFINED.", ".UNSPECIFIED.", ".LOADING_3D.", "._A."):
+        assert (Name.Constant, value) in list(lexer.get_tokens(value)), value
+
+
 def test_step_string_control_directives():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     escapes = [v for t, v in pairs if t is String.Escape]
     assert "\\X2\\00F8\\X0\\" in escapes
     assert "''" in escapes
+
+
+def test_step_string_reverse_solidus_is_doubled():
+    """Table 2 lists REVERSE_SOLIDUS REVERSE_SOLIDUS as one escape."""
+    pairs = list(StepFileLexer().get_tokens(r"'a\\b'"))
+    assert (String.Escape, "\\\\") in pairs
+
+
+def test_step_x2_and_x4_need_at_least_one_hex_group():
+    """Table 4: HEX_TWO { HEX_TWO } is one group or more, so not `\\X2\\\\X0\\`."""
+    lexer = StepFileLexer()
+    # The directive is the literal without its surrounding quotes.
+    for src in ("'\\X2\\\\X0\\'", "'\\X4\\\\X0\\'"):
+        assert (String.Escape, src[1:-1]) not in list(lexer.get_tokens(src)), src
+    for src in ("'\\X2\\00F8\\X0\\'", "'\\X2\\03B103B203B3\\X0\\'",
+                "'\\X4\\000000F8\\X0\\'"):
+        assert (String.Escape, src[1:-1]) in list(lexer.get_tokens(src)), src
+
+
+def test_step_binary_literal_needs_a_pad_digit():
+    """Table 2: BINARY starts with the fill count, so it is 0 to 3 and `""` is not one."""
+    lexer = StepFileLexer()
+    for src in ('"0"', '"30"', '"31"', '"23B"', '"092A"', '"0F3A"', '"00FF"',
+                '"00000000"'):
+        assert (Number.Hex, src) in list(lexer.get_tokens(src)), src
+    for src in ('""', '"F"', '"4A"', '"A0"'):
+        assert (Number.Hex, src) not in list(lexer.get_tokens(src)), src
 
 
 def test_step_entity_names_and_literals():
@@ -240,6 +405,13 @@ TABLE_4_FUNCTIONS = """
 
 TABLE_5_PROCEDURES = "INSERT REMOVE".split()
 
+# Every reserved word of ISO 10303-11 clause 7.2, tables 1 to 5, lowercase to
+# match the tuples the lexer carries.
+ALL_RESERVED_EXPECTED = {
+    w.lower() for w in (TABLE_1_KEYWORDS + TABLE_2_OPERATORS + TABLE_3_CONSTANTS
+                        + TABLE_4_FUNCTIONS + TABLE_5_PROCEDURES)
+}
+
 
 def sole_token(src):
     """Token type of the first non-whitespace token of ``src``."""
@@ -287,6 +459,36 @@ def test_no_reserved_word_lexes_as_an_error():
     for word in every:
         bad = [v for t, v in ExpressLexer().get_tokens(word) if t is Error]
         assert bad == [], f"{word} produced {bad}"
+
+
+def test_table_1_tuples_partition_the_keyword_table():
+    """_DECL, _KEYWORDS and _TYPES must split table 1 without overlapping.
+
+    They sum to exactly the 77 keywords, so a word carried by two tuples (as
+    CONSTANT once was) means one of the rules can never fire.
+    """
+    decl = set(ExpressLexer._DECL)
+    keywords = set(ExpressLexer._KEYWORDS)
+    types = set(ExpressLexer._TYPES)
+    assert decl & keywords == set(), f"in _DECL and _KEYWORDS: {sorted(decl & keywords)}"
+    assert decl & types == set(), f"in _DECL and _TYPES: {sorted(decl & types)}"
+    assert keywords & types == set(), f"in _KEYWORDS and _TYPES: {sorted(keywords & types)}"
+    assert len(decl) + len(keywords) + len(types) == len(TABLE_1_KEYWORDS) == 77
+
+
+def test_reserved_word_set_covers_tables_1_to_5():
+    """_ALL_RESERVED guards the declared name, so it must miss no reserved word."""
+    reserved = set(ExpressLexer._ALL_RESERVED)
+    # `?` is the single deliberate omission: it is a built-in constant (table
+    # 3), but a declared name always starts with a letter, so it can never
+    # appear where this set is consulted.
+    assert reserved == ALL_RESERVED_EXPECTED - {"?"}
+    assert len(reserved) == 123
+    # Longest first, so a shorter word cannot shadow a longer one.
+    lengths = [len(w) for w in ExpressLexer._ALL_RESERVED]
+    assert lengths == sorted(lengths, reverse=True)
+    # The alternation holds the same words, nothing more or less.
+    assert set(re.findall(r"[a-z0-9_]+", ExpressLexer._RESERVED_ALT)) == reserved
 
 
 # --------------------------------------------------------------------------

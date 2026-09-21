@@ -62,10 +62,14 @@ r ** 2;                    -- **
 
 -- remaining symbols recognised as operators
 a || b;                    -- ||
-@x, @y;                    -- @
 \                           -- \
 ```
 
 The `:=:` and `:<>:` forms are matched *before* the bare `:=`, so a relational
 comparison is never split into an assignment operator and a stray colon (see
 `test_express_instance_comparison_operators`).
+
+`@` is a special character of the EXPRESS character set (clause 7.1.3), so it
+can appear inside a string literal, but it is not one of the symbols in clause
+7.3 (table 6) and no operator is spelled with it. Outside a string it lexes as
+an error.
