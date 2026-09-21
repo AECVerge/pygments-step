@@ -112,7 +112,10 @@ class ExpressLexer(RegexLexer):
             (r"%[01]+", Number.Bin),                     # binary literal
             (r"\d+\.\d*(e[+-]?\d+)?", Number.Float),
             (r"\d+", Number.Integer),
-            (r"[a-z_]\w*", Name),
+            # Identifier: clause 7.4 requires a letter first, then any mix of
+            # letters, digits and underscore (simple_id), so a leading
+            # underscore is not part of an identifier.
+            (r"[a-z][a-z0-9_]*", Name),
             # "?" is the indeterminate built-in constant (table 3), not an
             # operator, so it is matched before the operator character class.
             (r"\?", Keyword.Constant),

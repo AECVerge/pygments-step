@@ -126,6 +126,17 @@ def test_express_unterminated_string_stops_at_the_line_end():
     assert [v for t, v in pairs if t is Error] == []
 
 
+def test_express_identifier_starts_with_a_letter():
+    """`simple_id` = letter { letter | digit | "_" } (ISO 10303-11 clause 7.4)."""
+    lexer = ExpressLexer()
+    for src in ("cartesian_point", "a_b1", "x1"):
+        assert (Name, src) in list(lexer.get_tokens(src)), src
+    # A leading underscore is not part of an identifier.
+    pairs = list(lexer.get_tokens("_x"))
+    assert (Name, "_x") not in pairs
+    assert (Error, "_") in pairs
+
+
 def test_express_declared_names():
     pairs = tokens_of(ExpressLexer(), "sample.exp")
     declared = {v for t, v in pairs if t is Name.Class}
