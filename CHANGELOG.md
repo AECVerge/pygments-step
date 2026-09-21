@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Examples on the STEP pages for the sections the third edition adds (`ANCHOR`,
+  `REFERENCE`, `SIGNATURE`) and for an enumeration value that contains an
+  underscore.
+
+### Fixed
+
+- `ExpressLexer`:
+  - Whitespace is the set in clause 7.1.5 — space, tab, line feed and carriage
+    return — instead of `\s`, which also accepted form feed and vertical tab. The
+    same set now drives the separator in the declaration rule and in the built-in
+    call lookahead, so a character is no longer whitespace in one place and an
+    error in another.
+  - A declaration head no longer swallows the next reserved word as the declared
+    name: `ENTITY ENUMERATION` lexes as a declaration head followed by the
+    `ENUMERATION` type keyword, and the stacked heads on the declarations page
+    stay declaration heads.
+  - The declared name and every other identifier begin with a letter (clause
+    7.4), so `_x` is an error rather than a name.
+  - An unterminated string literal ends at the line end instead of turning the
+    rest of the file into string text (clause 7.5.4: a string literal never spans
+    a physical line boundary).
+  - The symbolic operators are spelled out as explicit alternatives, longest
+    first. `@` is no longer one of them: it is a special character of the
+    character set (clause 7.1.3) but not a symbol of clause 7.3 table 6, and no
+    operator uses it, so outside a string it is an error.
+  - `_KEYWORDS` no longer repeats `CONSTANT`, which `_DECL` already carries, so
+    the three tuples partition table 1 exactly (8 + 52 + 17 = 77).
+- `StepFileLexer`:
+  - Separation follows clause 5.6 — space plus the control characters the
+    standards let an exchange structure ignore (line feed, carriage return, tab,
+    vertical tab, form feed) — instead of `\s`; NUL, ESC and DEL stay errors. The
+    same set drives the instance-definition and entity-name lookaheads.
+  - A doubled reverse solidus is one `String.Escape` instead of two string
+    characters (table 2 lists `REVERSE_SOLIDUS REVERSE_SOLIDUS` inside the
+    `STRING` production).
+  - `\X2\` and `\X4\` need at least one group of four or eight hexadecimal digits
+    (table 4: `HEX_TWO { HEX_TWO }`), so an empty `\X2\\X0\` is no longer a
+    complete escape.
+  - A binary literal starts with the fill count, which is `0` to `3` (table 2),
+    so `""` and values whose first digit is `4` to `F` are no longer binary
+    literals; the empty binary is `"0"`.
+- Both lexers keep to the ASCII lexical space their standards define, through
+  `re.ASCII`. Without it a case-insensitive `[a-z]` matched KELVIN SIGN
+  (U+212A) and long s (U+017F), and `\d` matched Arabic-Indic digits, so
+  identifiers and numbers accepted text that is not in the standards' alphabets.
+  Non-ASCII inside a string or a remark is unaffected.
+
+### Notes
+
+- The lexers stay permissive where the standards' own prose is a summary rather
+  than the grammar: an encoded string literal whose hexadecimal digits do not
+  come in whole characters is coloured as one string, and an enumeration value
+  may contain an underscore — the WSN subsets of table 1 fold the underscore into
+  `UPPER`, so that is ordinary grammar rather than a tolerance. Both are
+  documented on the matching pages.
+- Clause and table numbers in the code comments and on the pages cite the edition
+  they come from: ISO 10303-11:2004 for EXPRESS and ISO 10303-21:2002 for STEP,
+  with the third edition's renumbering noted on the STEP index page.
+- The suite pins the rules above: the separator sets, declaration heads,
+  identifiers, enumeration values, the string escapes and the binary fill count.
+
 ## [0.1.0] - 2026-09-02
 
 Initial release.
@@ -75,4 +140,5 @@ protocol. Consequently `ifc` and `*.ifc` are **not** claimed as an alias or
 filename pattern — IFC is only one of many SPF-based formats. Use `step21`
 (or `p21` / `spf`) for IFC content.
 
+[Unreleased]: https://github.com/AECVerge/pygments-step/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/AECVerge/pygments-step/releases/tag/v0.1.0
