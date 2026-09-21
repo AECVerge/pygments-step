@@ -14,7 +14,7 @@ Initial release.
 - `ExpressLexer` for the EXPRESS data modelling language (ISO 10303-11).
   Registered as `express`, with aliases `exp` and `iso-10303-11`, and bound to
   `*.exp` and the `text/x-express` MIME type.
-  - Case-insensitive keywords, per ISO 10303-11 clause 7.
+  - Case-insensitive keywords, per ISO 10303-11 clause 6.1 and annex A.1.1.
   - Nested `(* ... (* ... *) ... *)` embedded remarks and `-- ...` tail remarks.
   - Declaration heads (`SCHEMA`, `ENTITY`, `TYPE`, `FUNCTION`, `PROCEDURE`,
     `RULE`, `CONSTANT`, `SUBTYPE_CONSTRAINT`) tokenise the declared name

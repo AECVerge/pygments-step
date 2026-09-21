@@ -21,7 +21,9 @@ class ExpressLexer(RegexLexer):
     mimetypes = ["text/x-express"]
     url = "https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)"
 
-    # EXPRESS keywords are case insensitive (ISO 10303-11, clause 7).
+    # EXPRESS keywords are case insensitive: a literal inside the syntax rules is
+    # case independent (ISO 10303-11:2004, clause 6.1), and annex A.1.1 states
+    # that a keyword may be given in upper, lower or mixed case.
     # re.ASCII keeps the lexical space ASCII-only, as the standard requires:
     # without it ``\d`` and the case-insensitive ``[a-z]`` ranges also accept
     # non-ASCII input (Arabic-Indic digits, KELVIN SIGN, long s).
@@ -50,8 +52,8 @@ class ExpressLexer(RegexLexer):
     _WORD_OPERATORS = ("and", "andor", "div", "in", "like", "mod", "not",
                        "or", "xor")
 
-    # array, bag, list and set are all aggregation_types (clause 172), so they
-    # are classified together rather than split across Keyword/Keyword.Type.
+    # array, bag, list and set are all aggregation_types (syntax rule 172), so
+    # they are classified together rather than split across Keyword/Keyword.Type.
     _TYPES = ("aggregate", "array", "bag", "binary", "boolean", "enumeration",
               "extensible", "generic", "generic_entity", "integer", "list",
               "logical", "number", "real", "select", "set", "string")
@@ -126,8 +128,8 @@ class ExpressLexer(RegexLexer):
             # "?" is the indeterminate built-in constant (table 3), not an
             # operator, so it is matched before the operator character class.
             (r"\?", Keyword.Constant),
-            # Longest-first: `:=` must not shadow `:=:` (rel_op, clause 282), and
-            # the bare `<` and `>` sit in the character class so that `<*`,
+            # Longest-first: `:=` must not shadow `:=:` (rel_op, syntax rule 282),
+            # and the bare `<` and `>` sit in the character class so that `<*`,
             # `<=`, `>=` and `<>` always win. `@` is a special character of the
             # EXPRESS character set (clause 7.1.3), so it may appear inside a
             # string, but it is no symbol of clause 7.3 table 6 and no clause 12

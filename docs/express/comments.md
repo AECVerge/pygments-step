@@ -4,7 +4,7 @@ title: Remarks
 
 # Remarks
 
-EXPRESS has two comment forms (ISO 10303-11 clause 7): the embedded remark
+EXPRESS has two comment forms (clause 7.1.6): the embedded remark
 `(* ... *)` which **nests**, and the tail remark `-- ...` which runs to the end
 of the line.
 

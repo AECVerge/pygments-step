@@ -9,7 +9,7 @@ All literal forms that `ExpressLexer` can emit, with the token they produce.
 ## Strings
 
 A simple string is single-quoted; a doubled quote `''` escapes a quote inside it
-(ISO 10303-11 clause 7):
+(clause 7.5.4):
 
 ```express title="strings"
 s1 : STRING := 'hello';

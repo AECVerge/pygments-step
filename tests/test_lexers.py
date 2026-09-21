@@ -285,7 +285,7 @@ def test_step_whitespace_is_the_whitespace_like_control_set():
 
 
 def test_step_section_keywords_are_reserved():
-    """Clause 6.2: the section keywords of the second and third editions."""
+    """Clause 6.1, 6.2 in the third edition: the section keywords."""
     lexer = StepFileLexer()
     for word in ("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE"):
         assert (Keyword.Reserved, word) in list(lexer.get_tokens(word)), word

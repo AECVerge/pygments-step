@@ -35,5 +35,11 @@ being green.
 | [Literals](literals.md) | Strings, encoded and binary literals, reals and integers |
 | [Remarks](comments.md) | Nested `(* ... *)` and `--` tail remarks |
 
-The EXPRESS lexer is **case-insensitive** (ISO 10303-11, clause 7), so each page
-shows the canonical upper-case form; every snippet is valid lower-case too.
+The EXPRESS lexer is **case-insensitive**: a literal inside the syntax rules is
+case independent (ISO 10303-11:2004, clause 6.1) and annex A.1.1 states that a
+keyword may be given in upper, lower or mixed case, so each page shows the
+canonical upper-case form and every snippet is valid lower-case too.
+
+Clause and table numbers on these pages follow ISO 10303-11:2004. The rules
+inside its syntax boxes carry their own numbers (annex A), which the lexer
+comments cite as `syntax rule N`.

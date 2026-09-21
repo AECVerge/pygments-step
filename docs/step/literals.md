@@ -7,7 +7,7 @@ title: Literals
 ## Strings
 
 A Part 21 string is single-quoted; a doubled quote `''` inserts a quote into the
-string (ISO 10303-21 clause 7.2).
+string (clause 6.3.3, numbered 6.4.3 in the third edition).
 
 ```step21 title="strings"
 #1= A('a simple string');

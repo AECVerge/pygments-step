@@ -26,3 +26,8 @@ these examples work for IFC, AP203, AP214 or any other Part 21 schema.
 | [Literals](literals.md) | Binary literals and strings (including `''` escapes) |
 | [Directives](directives.md) | String and print control directives |
 | [Comments](comments.md) | `/* ... */` block comments |
+
+Clause numbers on these pages follow ISO 10303-21:2002, the second edition. The
+third edition renumbers some of them: the token clauses become 6.2 to 6.4.6 where
+the second edition has 6.1 to 6.3.6, and the print control directives move from
+clause 11 to 13. Pages that need to be exact give both numbers.
