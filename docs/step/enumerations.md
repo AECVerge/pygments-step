@@ -15,6 +15,17 @@ derived value `*` are emitted as `Keyword.Constant`.
 .NOTDEFINED.
 ```
 
+The grammar of ISO 10303-21 allows only letters and digits between the dots, but
+application protocol content uses underscores — IFC has values such as
+`.LOADING_3D.` — so the lexer accepts them:
+
+```step21 title="enumeration values with an underscore"
+.LOADING_3D.
+```
+
+A strict validator would reject that value; the lexer colours it because that is
+what the files contain.
+
 ```step21 title="unset and derived values"
 $
 *

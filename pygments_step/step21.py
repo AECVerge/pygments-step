@@ -66,7 +66,11 @@ class StepFileLexer(RegexLexer):
             (r"#\d+", Name.Variable),                    # instance reference
             (r"'", String.Single, "string"),
             (r'"[0-9a-f]*"', Number.Hex),                # binary literal
-            (r"\.[a-z_][a-z0-9_]*\.", Name.Constant),    # .T. .F. .NOTDEFINED.
+            # Enumeration values: .T., .NOTDEFINED., but also values that
+            # contain an underscore — the grammar allows only letters and
+            # digits, while application protocol content such as IFC's
+            # .LOADING_3D. needs the underscore — so the rule stays wide.
+            (r"\.[a-z_][a-z0-9_]*\.", Name.Constant),
             (r"[$*]", Keyword.Constant),                 # unset / derived value
             (r"[+-]?\d+\.\d*(e[+-]?\d+)?", Number.Float),
             (r"[+-]?\d+", Number.Integer),
