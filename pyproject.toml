@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pygments-step"
-version = "0.1.0"
+version = "0.1.1"
 description = "Pygments lexers for EXPRESS (ISO 10303-11) and STEP Part 21 (ISO 10303-21)"
 readme = "README.md"
 requires-python = ">=3.9"
