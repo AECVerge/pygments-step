@@ -18,12 +18,16 @@ string (ISO 10303-21 clause 7.2).
 
 ## Binary literals
 
-A double-quoted hex literal is a binary value (ISO 10303-21 clause 7.3):
+A double-quoted hex literal is a binary value. Its first hexadecimal digit records
+how many zero bits were filled in to reach a whole number of octets, so it is `0`
+to `3`, and the rest of the digits are the value; the empty binary is `"0"`
+(clause 6.3.6, which the third edition numbers 6.4.6):
 
 ```step21 title="binary literals"
 #5= BINARY_HOLDER("0F3A");
 #6= BINARY_HOLDER("00FF");
 #7= BINARY_HOLDER("00000000");
+#8= BINARY_HOLDER("0");
 ```
 
 In context:

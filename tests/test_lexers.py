@@ -338,6 +338,16 @@ def test_step_x2_and_x4_need_at_least_one_hex_group():
         assert (String.Escape, src[1:-1]) in list(lexer.get_tokens(src)), src
 
 
+def test_step_binary_literal_needs_a_pad_digit():
+    """Table 2: BINARY starts with the fill count, so it is 0 to 3 and `""` is not one."""
+    lexer = StepFileLexer()
+    for src in ('"0"', '"30"', '"31"', '"23B"', '"092A"', '"0F3A"', '"00FF"',
+                '"00000000"'):
+        assert (Number.Hex, src) in list(lexer.get_tokens(src)), src
+    for src in ('""', '"F"', '"4A"', '"A0"'):
+        assert (Number.Hex, src) not in list(lexer.get_tokens(src)), src
+
+
 def test_step_entity_names_and_literals():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     names = {v for t, v in pairs if t is Name.Class}

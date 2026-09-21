@@ -65,7 +65,10 @@ class StepFileLexer(RegexLexer):
             (r"#\d+(?=" + _SEPARATOR + r"*=)", Name.Label),            # instance definition
             (r"#\d+", Name.Variable),                    # instance reference
             (r"'", String.Single, "string"),
-            (r'"[0-9a-f]*"', Number.Hex),                # binary literal
+            # Binary literal (table 2): the first digit is the number of zero
+            # bits that were filled in to reach a whole number of octets, so it
+            # is 0 to 3, and the empty binary is "0".
+            (r'"[0-3][0-9a-f]*"', Number.Hex),
             # Enumeration values: .T., .NOTDEFINED. and values with an
             # underscore such as .LOADING_3D. The WSN subsets of table 1 fold
             # the underscore into UPPER, so it is ordinary grammar anywhere in a
