@@ -68,13 +68,32 @@ class ExpressLexer(RegexLexer):
         "value_in", "value_unique",
     )
 
+    # Every reserved word of ISO 10303-11 clause 7.2 except the indeterminate
+    # constant "?" (tables 1 to 5): clause 7.2 forbids all of them as
+    # identifiers, and the declaration rule uses this set to keep a head from
+    # swallowing the next reserved word as the declared name. Table 3's "?" is
+    # left out because a declared name always starts with a letter.
+    # Longest first, so a shorter word can never shadow a longer one.
+    _ALL_RESERVED = tuple(sorted(
+        set(_DECL + _KEYWORDS + _WORD_OPERATORS + _TYPES + _CONSTANTS
+            + _BUILTINS),
+        key=lambda word: (-len(word), word),
+    ))
+    _RESERVED_ALT = "|".join(re.escape(word) for word in _ALL_RESERVED)
+
     tokens = {
         "root": [
             (r"\s+", Whitespace),
             (r"--.*?$", Comment.Single),                 # tail remark
             (r"\(\*", Comment.Multiline, "comment"),     # embedded remark
-            # Declaration head: give the declared name its own token.
-            (words(_DECL, prefix=r"\b", suffix=r"\b(\s+)([a-z_]\w*)"),
+            # Declaration head: give the declared name its own token, but never
+            # let it be one of the reserved words, or the name would eat the
+            # next token: `ENTITY ENUMERATION` is a declaration head followed
+            # by a type keyword, not an entity called ENUMERATION. A rejected
+            # name makes this rule fail, so the bare head rule below tokenises
+            # the head on its own and the reserved word keeps its own token.
+            (words(_DECL, prefix=r"\b",
+                   suffix=r"\b(\s+)(?!(?:" + _RESERVED_ALT + r")\b)([a-z][a-z0-9_]*)"),
              bygroups(Keyword.Declaration, Whitespace, Name.Class)),
             (words(_DECL, prefix=r"\b", suffix=r"\b"), Keyword.Declaration),
             (words(_CONSTANTS, prefix=r"\b", suffix=r"\b"), Keyword.Constant),

@@ -9,6 +9,7 @@ over the network, so they cannot serve as a reproducible test corpus.
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -101,6 +102,29 @@ def test_express_declared_names():
     declared = {v for t, v in pairs if t is Name.Class}
     assert {"geometry_primitives", "cartesian_point", "dimension_of"} <= declared
     assert (Keyword.Declaration, "ENTITY") in pairs
+
+
+def test_express_declaration_head_does_not_swallow_a_reserved_word():
+    """`ENTITY ENUMERATION` declares nothing: ENUMERATION is a type keyword."""
+    pairs = list(ExpressLexer().get_tokens("ENTITY ENUMERATION;"))
+    assert (Keyword.Declaration, "ENTITY") in pairs
+    assert (Keyword.Type, "ENUMERATION") in pairs
+    assert (Name.Class, "ENUMERATION") not in pairs
+
+
+def test_express_bare_declaration_heads_stay_heads():
+    """Back-to-back heads, as on the declarations page, are all heads."""
+    heads = ["SCHEMA", "ENTITY", "TYPE", "FUNCTION", "PROCEDURE", "RULE",
+             "CONSTANT", "SUBTYPE_CONSTRAINT"]
+    pairs = list(ExpressLexer().get_tokens("\n".join(heads)))
+    assert [v for t, v in pairs if t is Keyword.Declaration] == heads
+    assert [v for t, v in pairs if t is Name.Class] == []
+
+
+def test_express_declared_name_is_an_identifier():
+    """The name may start *like* a keyword, but not be one, and needs a letter."""
+    assert (Name.Class, "types") in list(ExpressLexer().get_tokens("TYPE types;"))
+    assert (Name.Class, "_x") not in list(ExpressLexer().get_tokens("ENTITY _x;"))
 
 
 def test_express_instance_comparison_operators():
@@ -240,6 +264,13 @@ TABLE_4_FUNCTIONS = """
 
 TABLE_5_PROCEDURES = "INSERT REMOVE".split()
 
+# Every reserved word of ISO 10303-11 clause 7.2, tables 1 to 5, lowercase to
+# match the tuples the lexer carries.
+ALL_RESERVED_EXPECTED = {
+    w.lower() for w in (TABLE_1_KEYWORDS + TABLE_2_OPERATORS + TABLE_3_CONSTANTS
+                        + TABLE_4_FUNCTIONS + TABLE_5_PROCEDURES)
+}
+
 
 def sole_token(src):
     """Token type of the first non-whitespace token of ``src``."""
@@ -287,6 +318,36 @@ def test_no_reserved_word_lexes_as_an_error():
     for word in every:
         bad = [v for t, v in ExpressLexer().get_tokens(word) if t is Error]
         assert bad == [], f"{word} produced {bad}"
+
+
+def test_table_1_tuples_partition_the_keyword_table():
+    """_DECL, _KEYWORDS and _TYPES must split table 1 without overlapping.
+
+    They sum to exactly the 77 keywords, so a word carried by two tuples (as
+    CONSTANT once was) means one of the rules can never fire.
+    """
+    decl = set(ExpressLexer._DECL)
+    keywords = set(ExpressLexer._KEYWORDS)
+    types = set(ExpressLexer._TYPES)
+    assert decl & keywords == set(), f"in _DECL and _KEYWORDS: {sorted(decl & keywords)}"
+    assert decl & types == set(), f"in _DECL and _TYPES: {sorted(decl & types)}"
+    assert keywords & types == set(), f"in _KEYWORDS and _TYPES: {sorted(keywords & types)}"
+    assert len(decl) + len(keywords) + len(types) == len(TABLE_1_KEYWORDS) == 77
+
+
+def test_reserved_word_set_covers_tables_1_to_5():
+    """_ALL_RESERVED guards the declared name, so it must miss no reserved word."""
+    reserved = set(ExpressLexer._ALL_RESERVED)
+    # `?` is the single deliberate omission: it is a built-in constant (table
+    # 3), but a declared name always starts with a letter, so it can never
+    # appear where this set is consulted.
+    assert reserved == ALL_RESERVED_EXPECTED - {"?"}
+    assert len(reserved) == 123
+    # Longest first, so a shorter word cannot shadow a longer one.
+    lengths = [len(w) for w in ExpressLexer._ALL_RESERVED]
+    assert lengths == sorted(lengths, reverse=True)
+    # The alternation holds the same words, nothing more or less.
+    assert set(re.findall(r"[a-z0-9_]+", ExpressLexer._RESERVED_ALT)) == reserved
 
 
 # --------------------------------------------------------------------------
