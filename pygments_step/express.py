@@ -30,9 +30,12 @@ class ExpressLexer(RegexLexer):
     _DECL = ("schema", "entity", "type", "function", "procedure", "rule",
              "constant", "subtype_constraint")
 
+    # Statement keywords: table 1 minus the declaration heads (_DECL), which
+    # already carries CONSTANT, and minus the built-in type keywords (_TYPES).
+    # The three tuples therefore partition table 1 (8 + 52 + 17 = 77).
     _KEYWORDS = (
         "abstract", "alias", "as", "based_on", "begin", "by", "case",
-        "constant", "derive", "else", "end", "end_alias", "end_case",
+        "derive", "else", "end", "end_alias", "end_case",
         "end_constant", "end_entity", "end_function", "end_if", "end_local",
         "end_procedure", "end_repeat", "end_rule", "end_schema",
         "end_subtype_constraint", "end_type", "escape", "fixed", "for",
