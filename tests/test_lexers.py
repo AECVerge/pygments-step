@@ -307,6 +307,13 @@ def test_step_enumerations_and_unset():
     assert (Keyword.Constant, "*") in pairs   # derived
 
 
+def test_step_enumeration_values_may_contain_underscores():
+    """The alphabet's UPPER subset contains the underscore (table 1)."""
+    lexer = StepFileLexer()
+    for value in (".T.", ".NOTDEFINED.", ".UNSPECIFIED.", ".LOADING_3D.", "._A."):
+        assert (Name.Constant, value) in list(lexer.get_tokens(value)), value
+
+
 def test_step_string_control_directives():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     escapes = [v for t, v in pairs if t is String.Escape]

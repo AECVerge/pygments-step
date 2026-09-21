@@ -66,7 +66,11 @@ class StepFileLexer(RegexLexer):
             (r"#\d+", Name.Variable),                    # instance reference
             (r"'", String.Single, "string"),
             (r'"[0-9a-f]*"', Number.Hex),                # binary literal
-            (r"\.[a-z_][a-z0-9_]*\.", Name.Constant),    # .T. .F. .NOTDEFINED.
+            # Enumeration values: .T., .NOTDEFINED. and values with an
+            # underscore such as .LOADING_3D. The WSN subsets of table 1 fold
+            # the underscore into UPPER, so it is ordinary grammar anywhere in a
+            # value, first position included.
+            (r"\.[a-z_][a-z0-9_]*\.", Name.Constant),
             (r"[$*]", Keyword.Constant),                 # unset / derived value
             (r"[+-]?\d+\.\d*(e[+-]?\d+)?", Number.Float),
             (r"[+-]?\d+", Number.Integer),
