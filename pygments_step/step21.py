@@ -55,6 +55,10 @@ class StepFileLexer(RegexLexer):
             # (clause 11), so they must be recognised here too.
             (r"\\[NF]\\", Comment.Preproc),
             (r"\b(END-ISO-10303-21|ISO-10303-21)\b", Keyword.Namespace),
+            # Section keywords (clause 6.2). HEADER, DATA and ENDSEC are the
+            # sections of the second edition; the third edition added the
+            # optional ANCHOR, REFERENCE and SIGNATURE sections, whose contents
+            # use tokens this lexer does not claim yet.
             (words(("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE",
                     "SIGNATURE"), prefix=r"\b", suffix=r"\b"),
              Keyword.Reserved),

@@ -284,6 +284,15 @@ def test_step_whitespace_is_the_whitespace_like_control_set():
     assert (Name.Class, "A") in list(lexer.get_tokens("A\t(1);"))
 
 
+def test_step_section_keywords_are_reserved():
+    """Clause 6.2: the section keywords of the second and third editions."""
+    lexer = StepFileLexer()
+    for word in ("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE"):
+        assert (Keyword.Reserved, word) in list(lexer.get_tokens(word)), word
+    for word in ("ISO-10303-21", "END-ISO-10303-21"):
+        assert (Keyword.Namespace, word) in list(lexer.get_tokens(word)), word
+
+
 def test_step_instance_definition_vs_reference():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     assert (Name.Label, "#1") in pairs      # `#1=` is a definition
