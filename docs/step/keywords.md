@@ -60,5 +60,20 @@ q1w2e3r4t5y6u7i8
 ENDSEC;
 ```
 
-Base64 that happens to use only letters and digits lexes as a name here; the
-`+`, `/` and `=` characters it may also contain are not claimed yet.
+Base64 that happens to use only letters and digits lexes as a name here.
+
+!!! note "Third-edition tokens that are not lexed yet"
+
+    The section keywords are complete, but part of the content the third edition
+    added is not claimed yet, which is why the examples above show it inside a
+    comment:
+
+    - `<anchor-name>` labels and resources, the `ANCHOR_NAME` and `RESOURCE`
+      productions that anchor items and reference items are written with;
+    - anchor tags, `{name:item}` written after an anchor item;
+    - base64 that contains `+`, `/` or `=`, the signature section's content —
+      plain `A-Z`, `a-z` and `0-9` already lex, since it is a name.
+
+    The rest of the third edition's tokens belong to the same work, including
+    value-instance names such as `@1` and constant names such as `#NAME`. All of
+    it is planned for a future version.
