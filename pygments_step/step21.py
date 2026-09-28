@@ -83,8 +83,8 @@ class StepFileLexer(RegexLexer):
             (r"#[A-Z][A-Z0-9]*", Name.Constant),
             (r"#\d+(?=" + _SEPARATOR + r"*=)", Name.Label),            # instance definition
             (r"#\d+", Name.Variable),                    # instance reference
-            # >>> Edition 3 anchor tags: {tag_name:'anchor_item'}. The state keeps
-            # >>> strings and comments from closing the tag on a "}" inside them.
+            # Edition 3 anchor tags: {tag_name:'anchor_item'}. The state keeps
+            # strings and comments from closing the tag on a "}" inside them.
             (r"\{[A-Za-z_][A-Za-z0-9_]*:", Name.Attribute, "anchor_tag"),
             (r"'", String.Single, "string"),
             # Binary literal (table 2): the first digit is the number of zero
@@ -105,7 +105,7 @@ class StepFileLexer(RegexLexer):
             (r"[();,=]", Punctuation),
         ],
         "anchor_tag": [
-            # >>> A tag can contain the same separators as the root grammar.
+            # A tag can contain the same separators as the root grammar.
             (_SEPARATOR + "+", Whitespace),
             (r"\\[NF]\\", Comment.Preproc),
             (r"'", String.Single, "string"),
@@ -115,7 +115,7 @@ class StepFileLexer(RegexLexer):
             (r"[^{}'/]+", Name.Attribute),
         ],
         "signature": [
-            # >>> Signature bodies are base64 (RFC 4648) and may wrap lines.
+            # Signature bodies are base64 (RFC 4648) and may wrap lines.
             (_SEPARATOR + "+", Whitespace),
             (r"/\*", Comment.Multiline, "comment"),
             (r"\\[NF]\\", Comment.Preproc),

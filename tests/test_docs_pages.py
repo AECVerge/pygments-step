@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from pygments.lexers import get_lexer_by_name
-# >>> Token families used by the Edition 3 production coverage checks.
+# Token families used by the Edition 3 production coverage checks.
 from pygments.token import Error, Name, String
 
 from pygments_step.express import ExpressLexer

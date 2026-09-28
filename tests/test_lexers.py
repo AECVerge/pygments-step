@@ -364,7 +364,7 @@ def test_step_edition_3_constant_entity_names():
     assert (Name.Variable, "#1") in pairs
 
 
-# >>> Edition 3 ANCHOR_TAG production.
+# Edition 3 ANCHOR_TAG production.
 def test_step_edition_3_anchor_tags():
     """Tag names accept low lines, and strings/comments may contain "}"."""
     lexer = StepFileLexer()
@@ -393,7 +393,7 @@ def test_step_edition_3_anchor_tags():
     assert (Name.Attribute, "}") in pairs
 
 
-# >>> Edition 3 SIGNATURE_CONTENT production.
+# Edition 3 SIGNATURE_CONTENT production.
 def test_step_edition_3_signature_base64():
     """Base64 content is a String.Other token and ENDSEC exits its state."""
     lexer = StepFileLexer()
@@ -404,7 +404,7 @@ def test_step_edition_3_signature_base64():
     assert (Name.Label, "#1") in pairs
     assert [v for t, v in pairs if t is Error] == []
 
-    # >>> ENDSEC remains base64 unless it is the section terminator.
+    # ENDSEC remains base64 unless it is the section terminator.
     pairs = list(lexer.get_tokens("SIGNATURE;\nENDSEC\nAA==\nENDSEC;"))
     assert (String.Other, "ENDSEC") in pairs
     assert (String.Other, "AA==") in pairs
