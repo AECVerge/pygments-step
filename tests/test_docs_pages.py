@@ -44,8 +44,9 @@ STEP_STRUCTURE_KEYWORDS = [
     "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE",
 ]
 
-# >>> Edition 3 production snippets described on the STEP keywords page. Each
-# >>> entry keeps the source text and the token that must appear in its output.
+# Edition 3 production snippets, with the token each one must produce. The STEP
+# keywords page shows them; this table keeps the mapping explicit, so a change to
+# the pages cannot quietly drop a production.
 STEP_EDITION_3_SAMPLES = {
     "resource": ("<other.stp#2>", String.Other, "<other.stp#2>"),
     "value instance name": ("@12", Name.Variable, "@12"),
@@ -55,7 +56,7 @@ STEP_EDITION_3_SAMPLES = {
         "{tag_name:'anchor_item'}", Name.Attribute, "{tag_name:"
     ),
     "signature content": (
-        "SIGNATURE;\nMIIG+/=\nENDSEC;", String.Other, "MIIG+/="
+        "SIGNATURE;\nMIIG+/=\nAA==\nENDSEC;", String.Other, "MIIG+/="
     ),
 }
 
@@ -122,14 +123,21 @@ def test_step_test_pages_lex_cleanly():
     assert bad == {}, f"STEP test pages produced Error tokens: {bad}"
 
 
-# >>> Exercise Edition 3 productions that the rendered pages do not yet show
-# >>> as live syntax, so regressions are caught before the docs are updated.
+# The rendered STEP keywords page shows these snippets, so their token mapping is
+# pinned here as well as by that page's own clean-lexing check.
 def test_step_edition_3_production_snippets_lex_cleanly():
     lexer = StepFileLexer()
     for name, (source, token_type, value) in STEP_EDITION_3_SAMPLES.items():
         pairs = list(lexer.get_tokens(source))
         assert (token_type, value) in pairs, name
         assert _error_tokens(lexer, source) == [], name
+
+
+def test_step_keywords_page_shows_every_edition_3_sample():
+    text = "\n".join(_fences("step21").get("keywords.md", []))
+    missing = [name for name, (source, _, _) in STEP_EDITION_3_SAMPLES.items()
+               if source not in text]
+    assert missing == [], f"keywords.md does not show: {missing}"
 
 
 # --------------------------------------------------------------------------
