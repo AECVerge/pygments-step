@@ -20,9 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     references.
   - Anchor tags (`{tag_name:'anchor_item'}`) are `Name.Attribute`; strings and
     remarks inside a tag may contain `}` without closing the tag early.
-  - `SIGNATURE` section bodies are lexed as Base64 `String.Other` content and
-    may wrap across lines. `ENDSEC` leaves the signature state only when it is
-    the section terminator, `ENDSEC;`.
+  - A signature section opens with the token `SIGNATURE;` (clause 14.1) and its
+    Base64 body is lexed as `String.Other`, line by line. `ENDSEC` leaves the
+    signature state only when it is the section terminator, `ENDSEC;`, and an
+    entity named `SIGNATURE` no longer opens the section.
 - Regression coverage for the third-edition resources, anchor names, occurrence
   names, constant entity names, anchor tags and signature content in
   `tests/test_lexers.py`, plus clean-lexing checks for the corresponding

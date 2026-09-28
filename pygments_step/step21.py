@@ -55,12 +55,18 @@ class StepFileLexer(RegexLexer):
             # (clause 11), so they must be recognised here too.
             (r"\\[NF]\\", Comment.Preproc),
             (r"\b(END-ISO-10303-21|ISO-10303-21)\b", Keyword.Namespace),
-            # >>> Section keywords (clause 6.2 in the third edition). SIGNATURE is
-            # >>> split out below so its base64 body can be lexed in its own state.
+            # Section keywords (clause 6.1, 6.2 in the third edition). SIGNATURE
+            # is split out below so that its base64 body can be lexed in a state
+            # of its own.
             (words(("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE"),
                    prefix=r"\b", suffix=r"\b"),
              Keyword.Reserved),
-            (r"\bSIGNATURE\b", Keyword.Reserved, "signature"),
+            # A signature section opens with the token "SIGNATURE;" (clause
+            # 14.1), so the state is entered only when the semicolon follows.
+            # Without that lookahead an entity that happens to be named
+            # SIGNATURE would swallow the rest of the file as base64.
+            (r"\bSIGNATURE\b(?=" + _SEPARATOR + r"*;)", Keyword.Reserved,
+             "signature"),
             # >>> Edition 3 resources and anchor names: <uri> and <#fragment>.
             (r"<[^>]*>", String.Other),
             # >>> Edition 3 occurrence names: @12 is a value instance name and

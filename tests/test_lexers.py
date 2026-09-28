@@ -285,12 +285,29 @@ def test_step_whitespace_is_the_whitespace_like_control_set():
 
 
 def test_step_section_keywords_are_reserved():
-    """Clause 6.1, 6.2 in the third edition: the section keywords."""
+    """Clause 6.1, 6.2 in the third edition: the section keywords.
+
+    Each is lexed as the token that opens its section, so with the semicolon
+    that terminates it.
+    """
     lexer = StepFileLexer()
     for word in ("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE"):
-        assert (Keyword.Reserved, word) in list(lexer.get_tokens(word)), word
+        assert (Keyword.Reserved, word) in list(lexer.get_tokens(word + ";")), word
     for word in ("ISO-10303-21", "END-ISO-10303-21"):
         assert (Keyword.Namespace, word) in list(lexer.get_tokens(word)), word
+
+
+def test_step_entity_named_signature_does_not_swallow_the_file():
+    """Only "SIGNATURE;" opens a signature section.
+
+    An entity that happens to be called SIGNATURE therefore leaves the rest of
+    the file lexing normally instead of turning it into base64.
+    """
+    pairs = list(StepFileLexer().get_tokens("#1= SIGNATURE(1);\n#2= OTHER(2);"))
+    assert (Name.Class, "SIGNATURE") in pairs
+    assert (Name.Label, "#2") in pairs
+    assert (Name.Class, "OTHER") in pairs
+    assert [v for t, v in pairs if t is Error] == []
 
 
 # >>> Edition 3 RESOURCE and ANCHOR_NAME productions.
