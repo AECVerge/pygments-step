@@ -293,6 +293,97 @@ def test_step_section_keywords_are_reserved():
         assert (Keyword.Namespace, word) in list(lexer.get_tokens(word)), word
 
 
+# >>> Edition 3 RESOURCE and ANCHOR_NAME productions.
+def test_step_edition_3_resources_and_anchor_names():
+    """Angle-bracketed resources and anchor names are String.Other."""
+    lexer = StepFileLexer()
+    for src in (
+        "<abc>",
+        "<other.stp#2>",
+        "<http://example.com/model.stp#shape>",
+    ):
+        pairs = list(lexer.get_tokens(src))
+        assert (String.Other, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+
+
+# >>> Edition 3 VALUE_INSTANCE_NAME and CONSTANT_VALUE_NAME productions.
+def test_step_edition_3_value_and_constant_value_names():
+    """@12 and @PI use distinct occurrence-name token types."""
+    lexer = StepFileLexer()
+    expected = (
+        ("@12", Name.Variable),
+        ("@023", Name.Variable),
+        ("@PI", Name.Constant),
+        ("@E", Name.Constant),
+    )
+    for src, token_type in expected:
+        pairs = list(lexer.get_tokens(src))
+        assert (token_type, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+
+
+# >>> Edition 3 CONSTANT_ENTITY_NAME production.
+def test_step_edition_3_constant_entity_names():
+    """#PI is a constant entity name without changing numeric instance names."""
+    lexer = StepFileLexer()
+    for src in ("#PI", "#INCH", "#FARADAY"):
+        pairs = list(lexer.get_tokens(src))
+        assert (Name.Label, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+
+    pairs = list(lexer.get_tokens("#1= A(1); #2= B(#1);"))
+    assert (Name.Label, "#1") in pairs
+    assert (Name.Variable, "#1") in pairs
+
+
+# >>> Edition 3 ANCHOR_TAG production.
+def test_step_edition_3_anchor_tags():
+    """Tag names accept low lines, and strings/comments may contain "}"."""
+    lexer = StepFileLexer()
+    for src in (
+        "{label:'Price estimate'}",
+        "{tag_name:'anchor_item'}",
+        "{link:<WELD_DC.XML>}",
+        "{tag:'}'}",
+        "{tag:/* } inside */ #20}",
+    ):
+        assert [v for t, v in lexer.get_tokens(src) if t is Error] == [], src
+
+    pairs = list(lexer.get_tokens("{label:'Price estimate'}"))
+    assert (Name.Attribute, "{label:") in pairs
+    assert (Name.Attribute, "}") in pairs
+
+    pairs = list(lexer.get_tokens("{tag_name:'anchor_item'}"))
+    assert (Name.Attribute, "{tag_name:") in pairs
+    assert (String.Single, "anchor_item") in pairs
+
+    pairs = list(lexer.get_tokens("{tag:'}'}"))
+    assert (String.Single, "}") in pairs
+
+    pairs = list(lexer.get_tokens("{tag:/* } inside */ #20}"))
+    assert (Comment.Multiline, " } inside ") in pairs
+    assert (Name.Attribute, "}") in pairs
+
+
+# >>> Edition 3 SIGNATURE_CONTENT production.
+def test_step_edition_3_signature_base64():
+    """Base64 content is a String.Other token and ENDSEC exits its state."""
+    lexer = StepFileLexer()
+    src = "SIGNATURE;\nMIIG+/=\nAA==\nENDSEC;\n#1= A(1);"
+    pairs = list(lexer.get_tokens(src))
+    assert (String.Other, "MIIG+/=") in pairs
+    assert (String.Other, "AA==") in pairs
+    assert (Name.Label, "#1") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+    # >>> ENDSEC remains base64 unless it is the section terminator.
+    pairs = list(lexer.get_tokens("SIGNATURE;\nENDSEC\nAA==\nENDSEC;"))
+    assert (String.Other, "ENDSEC") in pairs
+    assert (String.Other, "AA==") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+
 def test_step_instance_definition_vs_reference():
     pairs = tokens_of(StepFileLexer(), "sample.p21")
     assert (Name.Label, "#1") in pairs      # `#1=` is a definition

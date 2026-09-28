@@ -55,15 +55,25 @@ class StepFileLexer(RegexLexer):
             # (clause 11), so they must be recognised here too.
             (r"\\[NF]\\", Comment.Preproc),
             (r"\b(END-ISO-10303-21|ISO-10303-21)\b", Keyword.Namespace),
-            # Section keywords (clause 6.1, 6.2 in the third edition). HEADER,
-            # DATA and ENDSEC are the sections of the second edition; the third
-            # edition added the optional ANCHOR, REFERENCE and SIGNATURE
-            # sections, whose contents use tokens this lexer does not claim yet.
-            (words(("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE",
-                    "SIGNATURE"), prefix=r"\b", suffix=r"\b"),
+            # >>> Section keywords (clause 6.2 in the third edition). SIGNATURE is
+            # >>> split out below so its base64 body can be lexed in its own state.
+            (words(("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE"),
+                   prefix=r"\b", suffix=r"\b"),
              Keyword.Reserved),
+            (r"\bSIGNATURE\b", Keyword.Reserved, "signature"),
+            # >>> Edition 3 resources and anchor names: <uri> and <#fragment>.
+            (r"<[^>]*>", String.Other),
+            # >>> Edition 3 occurrence names: @12 is a value instance name and
+            # >>> @PI is a constant value name.
+            (r"@\d+", Name.Variable),
+            (r"@[A-Z][A-Z0-9]*", Name.Constant),
+            # >>> Edition 3 constant entity names: #PI or #INCH.
+            (r"#[A-Z][A-Z0-9]*", Name.Label),
             (r"#\d+(?=" + _SEPARATOR + r"*=)", Name.Label),            # instance definition
             (r"#\d+", Name.Variable),                    # instance reference
+            # >>> Edition 3 anchor tags: {tag_name:'anchor_item'}. The state keeps
+            # >>> strings and comments from closing the tag on a "}" inside them.
+            (r"\{[A-Za-z_][A-Za-z0-9_]*:", Name.Attribute, "anchor_tag"),
             (r"'", String.Single, "string"),
             # Binary literal (table 2): the first digit is the number of zero
             # bits that were filled in to reach a whole number of octets, so it
@@ -81,6 +91,25 @@ class StepFileLexer(RegexLexer):
              Name.Class),                                # entity / typed param
             (r"!?[a-z_][a-z0-9_]*", Name),
             (r"[();,=]", Punctuation),
+        ],
+        "anchor_tag": [
+            # >>> A tag can contain the same separators as the root grammar.
+            (_SEPARATOR + "+", Whitespace),
+            (r"\\[NF]\\", Comment.Preproc),
+            (r"'", String.Single, "string"),
+            (r"/\*", Comment.Multiline, "comment"),
+            (r"<[^>]*>", String.Other),
+            (r"\}", Name.Attribute, "#pop"),
+            (r"[^{}'/]+", Name.Attribute),
+        ],
+        "signature": [
+            # >>> Signature bodies are base64 (RFC 4648) and may wrap lines.
+            (_SEPARATOR + "+", Whitespace),
+            (r"/\*", Comment.Multiline, "comment"),
+            (r"\\[NF]\\", Comment.Preproc),
+            (r"\bENDSEC\b(?=" + _SEPARATOR + r"*;)", Keyword.Reserved, "root"),
+            (r"[A-Za-z0-9+/=]+", String.Other),
+            (r";", Punctuation),
         ],
         "comment": [
             (r"[^*/]+", Comment.Multiline),

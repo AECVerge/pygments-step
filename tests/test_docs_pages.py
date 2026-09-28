@@ -20,7 +20,8 @@ import sys
 from pathlib import Path
 
 from pygments.lexers import get_lexer_by_name
-from pygments.token import Error
+# >>> Token families used by the Edition 3 production coverage checks.
+from pygments.token import Error, Name, String
 
 from pygments_step.express import ExpressLexer
 from pygments_step.step21 import StepFileLexer
@@ -42,6 +43,21 @@ STEP_STRUCTURE_KEYWORDS = [
     "ISO-10303-21", "END-ISO-10303-21", "HEADER", "DATA",
     "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE",
 ]
+
+# >>> Edition 3 production snippets described on the STEP keywords page. Each
+# >>> entry keeps the source text and the token that must appear in its output.
+STEP_EDITION_3_SAMPLES = {
+    "resource": ("<other.stp#2>", String.Other, "<other.stp#2>"),
+    "value instance name": ("@12", Name.Variable, "@12"),
+    "constant value name": ("@PI", Name.Constant, "@PI"),
+    "constant entity name": ("#PI", Name.Label, "#PI"),
+    "anchor tag": (
+        "{tag_name:'anchor_item'}", Name.Attribute, "{tag_name:"
+    ),
+    "signature content": (
+        "SIGNATURE;\nMIIG+/=\nENDSEC;", String.Other, "MIIG+/="
+    ),
+}
 
 DOCS = Path(__file__).parent.parent / "docs"
 
@@ -104,6 +120,16 @@ def test_step_test_pages_lex_cleanly():
             if errors:
                 bad.setdefault(name, []).extend(f"{i}: {e!r}" for e in errors)
     assert bad == {}, f"STEP test pages produced Error tokens: {bad}"
+
+
+# >>> Exercise Edition 3 productions that the rendered pages do not yet show
+# >>> as live syntax, so regressions are caught before the docs are updated.
+def test_step_edition_3_production_snippets_lex_cleanly():
+    lexer = StepFileLexer()
+    for name, (source, token_type, value) in STEP_EDITION_3_SAMPLES.items():
+        pairs = list(lexer.get_tokens(source))
+        assert (token_type, value) in pairs, name
+        assert _error_tokens(lexer, source) == [], name
 
 
 # --------------------------------------------------------------------------
