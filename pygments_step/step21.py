@@ -67,14 +67,20 @@ class StepFileLexer(RegexLexer):
             # SIGNATURE would swallow the rest of the file as base64.
             (r"\bSIGNATURE\b(?=" + _SEPARATOR + r"*;)", Keyword.Reserved,
              "signature"),
-            # >>> Edition 3 resources and anchor names: <uri> and <#fragment>.
-            (r"<[^>]*>", String.Other),
-            # >>> Edition 3 occurrence names: @12 is a value instance name and
-            # >>> @PI is a constant value name.
+            # Edition 3 resources and anchor names: <uri> and <#fragment>. Both
+            # are URIs (clause 6.5), so neither holds whitespace or an angle
+            # bracket of its own.
+            (r"<[^<>\s]+>", String.Other),
+            # Edition 3 occurrence names. A value instance name is "@" DIGIT
+            # { DIGIT } and a constant value name is "@" UPPER { UPPER | DIGIT };
+            # an occurrence name defines an instance on the left of an
+            # assignment and references one on the right, exactly like "#1".
+            (r"@\d+(?=" + _SEPARATOR + r"*=)", Name.Label),
             (r"@\d+", Name.Variable),
             (r"@[A-Z][A-Z0-9]*", Name.Constant),
-            # >>> Edition 3 constant entity names: #PI or #INCH.
-            (r"#[A-Z][A-Z0-9]*", Name.Label),
+            # Edition 3 constant entity names, "#" UPPER { UPPER | DIGIT }:
+            # references like the other occurrence names, never definitions.
+            (r"#[A-Z][A-Z0-9]*", Name.Constant),
             (r"#\d+(?=" + _SEPARATOR + r"*=)", Name.Label),            # instance definition
             (r"#\d+", Name.Variable),                    # instance reference
             # >>> Edition 3 anchor tags: {tag_name:'anchor_item'}. The state keeps

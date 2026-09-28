@@ -50,7 +50,7 @@ STEP_EDITION_3_SAMPLES = {
     "resource": ("<other.stp#2>", String.Other, "<other.stp#2>"),
     "value instance name": ("@12", Name.Variable, "@12"),
     "constant value name": ("@PI", Name.Constant, "@PI"),
-    "constant entity name": ("#PI", Name.Label, "#PI"),
+    "constant entity name": ("#PI", Name.Constant, "#PI"),
     "anchor tag": (
         "{tag_name:'anchor_item'}", Name.Attribute, "{tag_name:"
     ),

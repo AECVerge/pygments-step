@@ -310,7 +310,8 @@ def test_step_entity_named_signature_does_not_swallow_the_file():
     assert [v for t, v in pairs if t is Error] == []
 
 
-# >>> Edition 3 RESOURCE and ANCHOR_NAME productions.
+# Edition 3 RESOURCE and ANCHOR_NAME productions. Clause 6.5 defines both as
+# URIs, so neither can hold whitespace or an angle bracket of its own.
 def test_step_edition_3_resources_and_anchor_names():
     """Angle-bracketed resources and anchor names are String.Other."""
     lexer = StepFileLexer()
@@ -323,8 +324,12 @@ def test_step_edition_3_resources_and_anchor_names():
         assert (String.Other, src) in pairs, src
         assert [v for t, v in pairs if t is Error] == [], src
 
+    # A "<" that does not close on its own line is not one of these tokens.
+    pairs = list(lexer.get_tokens("<abc\ndef>"))
+    assert (String.Other, "<abc\ndef>") not in pairs
 
-# >>> Edition 3 VALUE_INSTANCE_NAME and CONSTANT_VALUE_NAME productions.
+
+# Edition 3 VALUE_INSTANCE_NAME and CONSTANT_VALUE_NAME productions.
 def test_step_edition_3_value_and_constant_value_names():
     """@12 and @PI use distinct occurrence-name token types."""
     lexer = StepFileLexer()
@@ -339,14 +344,19 @@ def test_step_edition_3_value_and_constant_value_names():
         assert (token_type, src) in pairs, src
         assert [v for t, v in pairs if t is Error] == [], src
 
+    # A value instance name on the left of an assignment defines the instance,
+    # exactly as "#1=" defines an entity instance.
+    assert (Name.Label, "@12") in list(lexer.get_tokens("@12 = 1;"))
+    assert (Name.Variable, "@12") in list(lexer.get_tokens("#1= A(@12);"))
 
-# >>> Edition 3 CONSTANT_ENTITY_NAME production.
+
+# Edition 3 CONSTANT_ENTITY_NAME production.
 def test_step_edition_3_constant_entity_names():
-    """#PI is a constant entity name without changing numeric instance names."""
+    """#PI is a constant entity name, and a reference like @PI."""
     lexer = StepFileLexer()
     for src in ("#PI", "#INCH", "#FARADAY"):
         pairs = list(lexer.get_tokens(src))
-        assert (Name.Label, src) in pairs, src
+        assert (Name.Constant, src) in pairs, src
         assert [v for t, v in pairs if t is Error] == [], src
 
     pairs = list(lexer.get_tokens("#1= A(1); #2= B(#1);"))

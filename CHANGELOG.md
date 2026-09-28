@@ -13,11 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ISO 10303-21:
   - Resources and anchor names in angle brackets (`<other.stp#2>`,
     `<http://example.com/model.stp#shape>`) are `String.Other`.
-  - Value instance names such as `@12` are `Name.Variable`, while constant value
-    names such as `@PI` are `Name.Constant`.
-  - Constant entity names such as `#PI` and `#INCH` are `Name.Label`, without
-    changing the existing distinction between numeric instance definitions and
-    references.
+  - Value instance names such as `@12` follow the rule the lexer already applies
+    to entity instance names: `Name.Label` where they define an instance
+    (`@12 = …`) and `Name.Variable` where they reference one, while constant
+    value names such as `@PI` are `Name.Constant`.
+  - Constant entity names such as `#PI` and `#INCH` are `Name.Constant` as well,
+    since the standard only uses them as references.
   - Anchor tags (`{tag_name:'anchor_item'}`) are `Name.Attribute`; strings and
     remarks inside a tag may contain `}` without closing the tag early.
   - A signature section opens with the token `SIGNATURE;` (clause 14.1) and its
