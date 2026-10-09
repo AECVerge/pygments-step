@@ -77,8 +77,20 @@ ENDSEC;
 * `@12` — a value instance name is `Name.Label` where it defines the instance
   (`@12 = …`) and `Name.Variable` where it references one;
 * `@PI` and `#PI` — a constant value name and a constant entity name are
-  `Name.Constant`;
-* `{tag_name:'anchor_item'}` — an anchor tag is `Name.Attribute`, and a string or
-  a remark inside it may contain `}` without closing the tag early;
+  `Name.Constant`; table 1 folds the *low line* into `UPPER`, so `@PI_2` and
+  `#_INCH` are constant names too;
+* `{tag_name:'anchor_item'}` — an anchor tag keeps its braces and its tag name as
+  `Name.Attribute`, while the anchor item between them is lexed by the same rules
+  as the rest of the file (`#20` is a reference there as it is here), and a
+  string or a remark inside the tag may contain `}` without closing it early;
 * the Base64 of the signature section above is `String.Other`, and may be written
   over several lines.
+
+!!! note "Case"
+
+    Clause 6.3 defines a keyword as capital letters, digits and low lines
+    (plus an optional leading `!`), and table 2 defines the occurrence names in
+    the same spirit. `StepFileLexer` matches all of them case-insensitively
+    anyway — `header;`, `@pi` and `#pi` highlight like their upper-case forms —
+    because a lenient lexer is more useful on real files, and these pages show
+    the canonical upper-case spelling.

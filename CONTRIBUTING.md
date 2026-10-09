@@ -68,8 +68,9 @@ The suite is the safety net for both the lexers **and** the docs:
 - `tests/test_lexers.py` — alias resolution, filename dispatch, and token-level
   regressions; asserts neither fixture produces a single `Error` token.
 - `tests/test_docs_pages.py` — parses every `express` / `step21` code fence on
-  the `docs/express` and `docs/step` pages, asserts **zero `Error`** tokens, and
-  checks that each page really covers the whole token family it claims.
+  every page under `docs` (the demo page included), asserts **zero `Error`**
+  tokens, and checks that each page really covers the whole token family it
+  claims.
 
 When you change a lexer, **update the matching docs page too.** The two must stay
 in sync; if they drift, the docs test goes red.

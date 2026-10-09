@@ -338,6 +338,11 @@ def test_step_edition_3_value_and_constant_value_names():
         ("@023", Name.Variable),
         ("@PI", Name.Constant),
         ("@E", Name.Constant),
+        # Table 1 folds the low line into UPPER, so a constant name holds one
+        # wherever a capital letter may appear - the same reading the
+        # enumeration rule takes for ".LOADING_3D.".
+        ("@_PI", Name.Constant),
+        ("@PI_2", Name.Constant),
     )
     for src, token_type in expected:
         pairs = list(lexer.get_tokens(src))
@@ -354,7 +359,7 @@ def test_step_edition_3_value_and_constant_value_names():
 def test_step_edition_3_constant_entity_names():
     """#PI is a constant entity name, and a reference like @PI."""
     lexer = StepFileLexer()
-    for src in ("#PI", "#INCH", "#FARADAY"):
+    for src in ("#PI", "#INCH", "#FARADAY", "#_PI", "#INCH_2"):
         pairs = list(lexer.get_tokens(src))
         assert (Name.Constant, src) in pairs, src
         assert [v for t, v in pairs if t is Error] == [], src
@@ -366,7 +371,8 @@ def test_step_edition_3_constant_entity_names():
 
 # Edition 3 ANCHOR_TAG production.
 def test_step_edition_3_anchor_tags():
-    """Tag names accept low lines, and strings/comments may contain "}"."""
+    """The tag name and braces are Name.Attribute; the item lexes as it does
+    outside the tag, and strings/comments may contain "}"."""
     lexer = StepFileLexer()
     for src in (
         "{label:'Price estimate'}",
@@ -374,6 +380,8 @@ def test_step_edition_3_anchor_tags():
         "{link:<WELD_DC.XML>}",
         "{tag:'}'}",
         "{tag:/* } inside */ #20}",
+        "{tag:(#1,@2,1.5,.T.,$)}",
+        "{tag:\\N\\#20}",
     ):
         assert [v for t, v in lexer.get_tokens(src) if t is Error] == [], src
 
@@ -391,6 +399,35 @@ def test_step_edition_3_anchor_tags():
     pairs = list(lexer.get_tokens("{tag:/* } inside */ #20}"))
     assert (Comment.Multiline, " } inside ") in pairs
     assert (Name.Attribute, "}") in pairs
+    # The item keeps the token it has outside the tag (table 3: ANCHOR_ITEM is
+    # built from the same tokens as the rest of the file).
+    assert (Name.Variable, "#20") in pairs
+
+    # A print control directive may appear wherever a separator may (clause
+    # 5.6), an anchor tag included.
+    pairs = list(lexer.get_tokens("{tag:\\N\\#20}"))
+    assert (Comment.Preproc, "\\N\\") in pairs
+    assert (Name.Variable, "#20") in pairs
+
+
+# Table 3: ANCHOR_ITEM is made of the tokens of the exchange structure, so an
+# item must not lex one way in the file and another way inside a tag. This is
+# what keeps the two states from drifting apart.
+def test_step_anchor_tag_items_lex_as_they_do_outside_a_tag():
+    lexer = StepFileLexer()
+    for item in ("<other.stp#2>", "#20", "@12", "#PI", "@PI", "1.5", ".T.",
+                 "$", "'text'", "(#1,@2)"):
+        inside = [p for p in lexer.get_tokens("{tag:" + item + "}")
+                  if p[0] is not Name.Attribute and p[1].strip()]
+        outside = [p for p in lexer.get_tokens(item) if p[1].strip()]
+        assert inside == outside, item
+
+    # The resource is the one the root grammar defines (clause 6.5: a URI),
+    # so an angle-bracketed token it rejects is not a resource inside a tag.
+    assert (String.Other, "<WELD_DC.XML>") in list(
+        lexer.get_tokens("{link:<WELD_DC.XML>}"))
+    assert (String.Other, "<a b>") not in list(
+        lexer.get_tokens("{link:<a b>}"))
 
 
 # Edition 3 SIGNATURE_CONTENT production.
@@ -408,6 +445,16 @@ def test_step_edition_3_signature_base64():
     pairs = list(lexer.get_tokens("SIGNATURE;\nENDSEC\nAA==\nENDSEC;"))
     assert (String.Other, "ENDSEC") in pairs
     assert (String.Other, "AA==") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+    # A separator may sit between "SIGNATURE" and its semicolon, and between
+    # "ENDSEC" and its own, since a separator may appear between two tokens
+    # wherever the productions allow it (clause 5.6).
+    pairs = list(lexer.get_tokens("SIGNATURE ;\n\\N\\AA==\nENDSEC ;"))
+    assert (Keyword.Reserved, "SIGNATURE") in pairs
+    assert (Comment.Preproc, "\\N\\") in pairs
+    assert (String.Other, "AA==") in pairs
+    assert (Keyword.Reserved, "ENDSEC") in pairs
     assert [v for t, v in pairs if t is Error] == []
 
 

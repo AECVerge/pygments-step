@@ -131,9 +131,15 @@ pygmentize schema.exp
 ### STEP Part 21 (ISO 10303-21)
 
 - Exchange structure keywords: `ISO-10303-21`, `END-ISO-10303-21`, `HEADER`,
-  `DATA`, `ENDSEC`, `ANCHOR`, `REFERENCE`, `SIGNATURE`.
+  `DATA`, `ENDSEC`, `ANCHOR`, `REFERENCE`, and `SIGNATURE;`, which opens the
+  signature section the third edition adds.
 - Entity instance **definitions** (`#1=`) are tokenised differently from
-  **references** (`,#1,`), so the two read differently in rendered output.
+  **references** (`,#1,`), so the two read differently in rendered output. The
+  third edition's value instance names (`@12`) follow the same rule, while its
+  constant names (`@PI`, `#PI`) are constants.
+- The rest of the third edition's tokens: resources and anchor names
+  (`<other.stp#2>`), anchor tags (`{tag_name:'anchor_item'}`), and the base64
+  body of a signature section.
 - Enumerations (`.T.`, `.F.`, `.UNSPECIFIED.`), unset values (`$`) and derived
   values (`*`).
 - String control directives: `\S\`, `\P?\`, `\X\`, `\X2\...\X0\`,
@@ -178,13 +184,14 @@ python tests/test_lexers.py
 Tests cover alias and filename registration, token-level regressions for both
 lexers, and assert that neither fixture produces a single `Error` token.
 
-`tests/test_docs_pages.py` does the same for the rendered `docs/express` and
-`docs/step` pages. Those pages are an exhaustive, category-by-category corpus
-for the two lexers (keywords, operators, types, literals, comments, …); the test
-parses every code fence on them and asserts that the lexer produces zero
-`Error` tokens, and that each page really covers the whole family of tokens it
-claims to. The docs build in CI runs with `mkdocs build --strict`, so a snippet
-that stops lexing cleanly blocks the deploy as well.
+`tests/test_docs_pages.py` does the same for the rendered documentation: every
+`express` / `step21` fence on every page under `docs`, the demo page included.
+Those pages are an exhaustive, category-by-category corpus for the two lexers
+(keywords, operators, types, literals, comments, …); the test parses every code
+fence on them and asserts that the lexer produces zero `Error` tokens, and that
+each page really covers the whole family of tokens it claims to. The docs build
+in CI runs with `mkdocs build --strict`, so a snippet that stops lexing cleanly
+blocks the deploy as well.
 
 ## License
 

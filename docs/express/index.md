@@ -13,9 +13,9 @@ that promise:
    `docs` GitHub Actions workflow. A lexing or linking error turns the build
    red, so a broken snippet blocks the deploy.
 2. **The pytest suite.** `tests/test_docs_pages.py` parses every `express`
-   fence on these pages and asserts that the lexer produces **zero `Error`**
-   tokens, and that each page really contains the whole family of tokens it
-   claims to cover.
+   fence on every page under `docs`, the [demo](../demo.md) page included, and
+   asserts that the lexer produces **zero `Error`** tokens, and that each page
+   really contains the whole family of tokens it claims to cover.
 
 Use these pages the way you would use a checklist: pick an EXPRESS construct you
 are changing, find its page, and confirm the highlighting matches what you

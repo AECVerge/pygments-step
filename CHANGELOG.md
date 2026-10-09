@@ -18,17 +18,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (`@12 = …`) and `Name.Variable` where they reference one, while constant
     value names such as `@PI` are `Name.Constant`.
   - Constant entity names such as `#PI` and `#INCH` are `Name.Constant` as well,
-    since the standard only uses them as references.
-  - Anchor tags (`{tag_name:'anchor_item'}`) are `Name.Attribute`; strings and
-    remarks inside a tag may contain `}` without closing the tag early.
+    since the standard only uses them as references. Both kinds of constant name
+    take the low line, the way table 1 folds it into `UPPER`, so `@PI_2` and
+    `#_INCH` are constant names too.
+  - Anchor tags (`{tag_name:'anchor_item'}`) keep the tag name and its braces as
+    `Name.Attribute`, while the anchor item between them is lexed by the same
+    rules as the rest of the file (`#20` is a reference there as it is here);
+    strings and remarks inside a tag may contain `}` without closing the tag
+    early.
   - A signature section opens with the token `SIGNATURE;` (clause 14.1) and its
     Base64 body is lexed as `String.Other`, line by line. `ENDSEC` leaves the
     signature state only when it is the section terminator, `ENDSEC;`, and an
     entity named `SIGNATURE` no longer opens the section.
+  - The token-separator rules and the item productions are now defined once and
+    shared by the root grammar, the anchor-tag state and the signature state, so
+    a production cannot lex one way in the file and another way inside a tag.
 - Regression coverage for the third-edition resources, anchor names, occurrence
   names, constant entity names, anchor tags and signature content in
   `tests/test_lexers.py`, plus clean-lexing checks for the corresponding
-  production snippets in `tests/test_docs_pages.py`.
+  production snippets in `tests/test_docs_pages.py`. That test now scans every
+  page under `docs`, the demo page included, instead of the `docs/express` and
+  `docs/step` pages only, and keys the fences by their path so two pages of the
+  same name cannot overwrite each other.
 
 ## [0.2.0] - 2026-09-21
 
