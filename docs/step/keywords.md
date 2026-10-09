@@ -19,7 +19,7 @@ DATA
 ENDSEC
 ANCHOR
 REFERENCE
-SIGNATURE
+SIGNATURE;
 ```
 
 A full minimal exchange file:
@@ -38,42 +38,59 @@ END-ISO-10303-21;
 ```
 
 `ANCHOR` and `REFERENCE` open optional sections of their own — they are not part
-of the header section. Their items are written with tokens this lexer does not
-claim yet, so the contents sit in a comment, which Part 21 allows wherever a
-token separator may appear:
+of the header section. Their items are written with the third edition's
+occurrence names and resources:
 
 ```step21 title="anchor and reference sections"
 ANCHOR;
-/* <part> = #20; */
+<part> = #20;
 ENDSEC;
 REFERENCE;
-/* #1 = <other.stp#2>; */
+#1 = <other.stp#2>;
 ENDSEC;
 ```
 
 A signature section opens with the special token `SIGNATURE;` and closes with
-`ENDSEC;` (clause 14.1). Its content is base64:
+`ENDSEC;` (clause 14.1). Its Base64 content is lexed line by line:
 
 ```step21 title="signature section"
 SIGNATURE;
-q1w2e3r4t5y6u7i8
+MIIG+/=
+AA==
 ENDSEC;
 ```
 
-Base64 that happens to use only letters and digits lexes as a name here.
+## Third-edition tokens
 
-!!! note "Third-edition tokens that are not lexed yet"
+The productions the third edition adds render as follows:
 
-    The section keywords are complete, but part of the content the third edition
-    added is not claimed yet, which is why the examples above show it inside a
-    comment:
+```step21 title="resources, occurrence names, constant names and anchor tags"
+#1= A(<other.stp#2>);
+#2= B(@12,@PI,#PI);
+ANCHOR;
+<part> = #20 {tag_name:'anchor_item'};
+ENDSEC;
+```
 
-    - `<anchor-name>` labels and resources, the `ANCHOR_NAME` and `RESOURCE`
-      productions that anchor items and reference items are written with;
-    - anchor tags, `{name:item}` written after an anchor item;
-    - base64 that contains `+`, `/` or `=`, the signature section's content —
-      plain `A-Z`, `a-z` and `0-9` already lex, since it is a name.
+* `<other.stp#2>` — a resource or an anchor name (`RESOURCE`, `ANCHOR_NAME`) is
+  `String.Other`;
+* `@12` — a value instance name is `Name.Label` where it defines the instance
+  (`@12 = …`) and `Name.Variable` where it references one;
+* `@PI` and `#PI` — a constant value name and a constant entity name are
+  `Name.Constant`; table 1 folds the *low line* into `UPPER`, so `@PI_2` and
+  `#_INCH` are constant names too;
+* `{tag_name:'anchor_item'}` — an anchor tag keeps its braces and its tag name as
+  `Name.Attribute`, while the anchor item between them is lexed by the same rules
+  as the rest of the file (`#20` is a reference there as it is here), and a
+  string or a remark inside the tag may contain `}` without closing it early;
+* the Base64 of the signature section above is `String.Other`, and may be written
+  over several lines.
 
-    The rest of the third edition's tokens belong to the same work, including
-    value-instance names such as `@1` and constant names such as `#NAME`. All of
-    it is planned for a future version.
+!!! note "Case"
+
+    Clause 6.3 defines a keyword as capital letters, digits and low lines
+    (plus an optional leading `!`), and table 2 defines the occurrence names in
+    the same spirit. `StepFileLexer` matches all of them case-insensitively
+    anyway — `header;`, `@pi` and `#pi` highlight like their upper-case forms —
+    because a lenient lexer is more useful on real files, and these pages show
+    the canonical upper-case spelling.

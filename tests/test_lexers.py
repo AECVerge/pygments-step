@@ -285,12 +285,177 @@ def test_step_whitespace_is_the_whitespace_like_control_set():
 
 
 def test_step_section_keywords_are_reserved():
-    """Clause 6.1, 6.2 in the third edition: the section keywords."""
+    """Clause 6.1, 6.2 in the third edition: the section keywords.
+
+    Each is lexed as the token that opens its section, so with the semicolon
+    that terminates it.
+    """
     lexer = StepFileLexer()
     for word in ("HEADER", "DATA", "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE"):
-        assert (Keyword.Reserved, word) in list(lexer.get_tokens(word)), word
+        assert (Keyword.Reserved, word) in list(lexer.get_tokens(word + ";")), word
     for word in ("ISO-10303-21", "END-ISO-10303-21"):
         assert (Keyword.Namespace, word) in list(lexer.get_tokens(word)), word
+
+
+def test_step_entity_named_signature_does_not_swallow_the_file():
+    """Only "SIGNATURE;" opens a signature section.
+
+    An entity that happens to be called SIGNATURE therefore leaves the rest of
+    the file lexing normally instead of turning it into base64.
+    """
+    pairs = list(StepFileLexer().get_tokens("#1= SIGNATURE(1);\n#2= OTHER(2);"))
+    assert (Name.Class, "SIGNATURE") in pairs
+    assert (Name.Label, "#2") in pairs
+    assert (Name.Class, "OTHER") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+
+# Edition 3 RESOURCE and ANCHOR_NAME productions. Clause 6.5 defines both as
+# URIs, so neither can hold whitespace or an angle bracket of its own.
+def test_step_edition_3_resources_and_anchor_names():
+    """Angle-bracketed resources and anchor names are String.Other."""
+    lexer = StepFileLexer()
+    for src in (
+        "<abc>",
+        "<other.stp#2>",
+        "<http://example.com/model.stp#shape>",
+    ):
+        pairs = list(lexer.get_tokens(src))
+        assert (String.Other, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+
+    # A "<" that does not close on its own line is not one of these tokens.
+    pairs = list(lexer.get_tokens("<abc\ndef>"))
+    assert (String.Other, "<abc\ndef>") not in pairs
+
+
+# Edition 3 VALUE_INSTANCE_NAME and CONSTANT_VALUE_NAME productions.
+def test_step_edition_3_value_and_constant_value_names():
+    """@12 and @PI use distinct occurrence-name token types."""
+    lexer = StepFileLexer()
+    expected = (
+        ("@12", Name.Variable),
+        ("@023", Name.Variable),
+        ("@PI", Name.Constant),
+        ("@E", Name.Constant),
+        # Table 1 folds the low line into UPPER, so a constant name holds one
+        # wherever a capital letter may appear - the same reading the
+        # enumeration rule takes for ".LOADING_3D.".
+        ("@_PI", Name.Constant),
+        ("@PI_2", Name.Constant),
+    )
+    for src, token_type in expected:
+        pairs = list(lexer.get_tokens(src))
+        assert (token_type, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+
+    # A value instance name on the left of an assignment defines the instance,
+    # exactly as "#1=" defines an entity instance.
+    assert (Name.Label, "@12") in list(lexer.get_tokens("@12 = 1;"))
+    assert (Name.Variable, "@12") in list(lexer.get_tokens("#1= A(@12);"))
+
+
+# Edition 3 CONSTANT_ENTITY_NAME production.
+def test_step_edition_3_constant_entity_names():
+    """#PI is a constant entity name, and a reference like @PI."""
+    lexer = StepFileLexer()
+    for src in ("#PI", "#INCH", "#FARADAY", "#_PI", "#INCH_2"):
+        pairs = list(lexer.get_tokens(src))
+        assert (Name.Constant, src) in pairs, src
+        assert [v for t, v in pairs if t is Error] == [], src
+
+    pairs = list(lexer.get_tokens("#1= A(1); #2= B(#1);"))
+    assert (Name.Label, "#1") in pairs
+    assert (Name.Variable, "#1") in pairs
+
+
+# Edition 3 ANCHOR_TAG production.
+def test_step_edition_3_anchor_tags():
+    """The tag name and braces are Name.Attribute; the item lexes as it does
+    outside the tag, and strings/comments may contain "}"."""
+    lexer = StepFileLexer()
+    for src in (
+        "{label:'Price estimate'}",
+        "{tag_name:'anchor_item'}",
+        "{link:<WELD_DC.XML>}",
+        "{tag:'}'}",
+        "{tag:/* } inside */ #20}",
+        "{tag:(#1,@2,1.5,.T.,$)}",
+        "{tag:\\N\\#20}",
+    ):
+        assert [v for t, v in lexer.get_tokens(src) if t is Error] == [], src
+
+    pairs = list(lexer.get_tokens("{label:'Price estimate'}"))
+    assert (Name.Attribute, "{label:") in pairs
+    assert (Name.Attribute, "}") in pairs
+
+    pairs = list(lexer.get_tokens("{tag_name:'anchor_item'}"))
+    assert (Name.Attribute, "{tag_name:") in pairs
+    assert (String.Single, "anchor_item") in pairs
+
+    pairs = list(lexer.get_tokens("{tag:'}'}"))
+    assert (String.Single, "}") in pairs
+
+    pairs = list(lexer.get_tokens("{tag:/* } inside */ #20}"))
+    assert (Comment.Multiline, " } inside ") in pairs
+    assert (Name.Attribute, "}") in pairs
+    # The item keeps the token it has outside the tag (table 3: ANCHOR_ITEM is
+    # built from the same tokens as the rest of the file).
+    assert (Name.Variable, "#20") in pairs
+
+    # A print control directive may appear wherever a separator may (clause
+    # 5.6), an anchor tag included.
+    pairs = list(lexer.get_tokens("{tag:\\N\\#20}"))
+    assert (Comment.Preproc, "\\N\\") in pairs
+    assert (Name.Variable, "#20") in pairs
+
+
+# Table 3: ANCHOR_ITEM is made of the tokens of the exchange structure, so an
+# item must not lex one way in the file and another way inside a tag. This is
+# what keeps the two states from drifting apart.
+def test_step_anchor_tag_items_lex_as_they_do_outside_a_tag():
+    lexer = StepFileLexer()
+    for item in ("<other.stp#2>", "#20", "@12", "#PI", "@PI", "1.5", ".T.",
+                 "$", "'text'", "(#1,@2)"):
+        inside = [p for p in lexer.get_tokens("{tag:" + item + "}")
+                  if p[0] is not Name.Attribute and p[1].strip()]
+        outside = [p for p in lexer.get_tokens(item) if p[1].strip()]
+        assert inside == outside, item
+
+    # The resource is the one the root grammar defines (clause 6.5: a URI),
+    # so an angle-bracketed token it rejects is not a resource inside a tag.
+    assert (String.Other, "<WELD_DC.XML>") in list(
+        lexer.get_tokens("{link:<WELD_DC.XML>}"))
+    assert (String.Other, "<a b>") not in list(
+        lexer.get_tokens("{link:<a b>}"))
+
+
+# Edition 3 SIGNATURE_CONTENT production.
+def test_step_edition_3_signature_base64():
+    """Base64 content is a String.Other token and ENDSEC exits its state."""
+    lexer = StepFileLexer()
+    src = "SIGNATURE;\nMIIG+/=\nAA==\nENDSEC;\n#1= A(1);"
+    pairs = list(lexer.get_tokens(src))
+    assert (String.Other, "MIIG+/=") in pairs
+    assert (String.Other, "AA==") in pairs
+    assert (Name.Label, "#1") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+    # ENDSEC remains base64 unless it is the section terminator.
+    pairs = list(lexer.get_tokens("SIGNATURE;\nENDSEC\nAA==\nENDSEC;"))
+    assert (String.Other, "ENDSEC") in pairs
+    assert (String.Other, "AA==") in pairs
+    assert [v for t, v in pairs if t is Error] == []
+
+    # A separator may sit between "SIGNATURE" and its semicolon, and between
+    # "ENDSEC" and its own, since a separator may appear between two tokens
+    # wherever the productions allow it (clause 5.6).
+    pairs = list(lexer.get_tokens("SIGNATURE ;\n\\N\\AA==\nENDSEC ;"))
+    assert (Keyword.Reserved, "SIGNATURE") in pairs
+    assert (Comment.Preproc, "\\N\\") in pairs
+    assert (String.Other, "AA==") in pairs
+    assert (Keyword.Reserved, "ENDSEC") in pairs
+    assert [v for t, v in pairs if t is Error] == []
 
 
 def test_step_instance_definition_vs_reference():

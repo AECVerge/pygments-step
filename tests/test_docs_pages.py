@@ -1,12 +1,12 @@
 """Production tests for the documentation test pages.
 
-These pages live in ``docs/express`` and ``docs/step`` and are meant to be an
-exhaustive rendered corpus for the two lexers. The docs build in CI runs with
+These pages live under ``docs`` and are meant to be an exhaustive rendered
+corpus for the two lexers. The docs build in CI runs with
 ``mkdocs build --strict``, but that does not inspect Pygments token output, so
 these tests close the gap:
 
-* every `````express```` / ````step21```` fence on the test pages must lex with
-  **zero** ``Error`` tokens;
+* every `````express```` / ````step21```` fence anywhere under ``docs``,
+  the demo page included, must lex with **zero** ``Error`` tokens;
 * each category page must actually contain the whole family of tokens it claims
   to cover, so the pages cannot quietly drift out of date.
 
@@ -20,7 +20,8 @@ import sys
 from pathlib import Path
 
 from pygments.lexers import get_lexer_by_name
-from pygments.token import Error
+# Token families used by the Edition 3 production coverage checks.
+from pygments.token import Error, Name, String
 
 from pygments_step.express import ExpressLexer
 from pygments_step.step21 import StepFileLexer
@@ -43,16 +44,36 @@ STEP_STRUCTURE_KEYWORDS = [
     "ENDSEC", "ANCHOR", "REFERENCE", "SIGNATURE",
 ]
 
+# Edition 3 production snippets, with the token each one must produce. The STEP
+# keywords page shows them; this table keeps the mapping explicit, so a change
+# to the pages cannot quietly drop a production.
+STEP_EDITION_3_SAMPLES = {
+    "resource": ("<other.stp#2>", String.Other, "<other.stp#2>"),
+    "value instance name": ("@12", Name.Variable, "@12"),
+    "constant value name": ("@PI", Name.Constant, "@PI"),
+    "constant entity name": ("#PI", Name.Constant, "#PI"),
+    "anchor tag": (
+        "{tag_name:'anchor_item'}", Name.Attribute, "{tag_name:"
+    ),
+    "signature content": (
+        "SIGNATURE;\nMIIG+/=\nAA==\nENDSEC;", String.Other, "MIIG+/="
+    ),
+}
+
 DOCS = Path(__file__).parent.parent / "docs"
 
 
 def _fences(language: str):
-    """Return {doc_name: [fence_text, ...]} for ``language`` fences across the test docs."""
-    docs = sorted((DOCS / "express").glob("*.md")) + sorted((DOCS / "step").glob("*.md"))
+    """Return {doc path: [fence_text, ...]} for ``language`` fences.
+
+    Every page under ``docs`` is scanned, so the demo page is covered too, and
+    the key is the path relative to ``docs`` - two pages that share a file name
+    (the ``index.md`` of each section, say) cannot overwrite each other.
+    """
     result: dict[str, list[str]] = {}
     opening = re.compile(r"^```(\w+)(.*)$")
     closing = re.compile(r"^```\s*$")
-    for path in docs:
+    for path in sorted(DOCS.rglob("*.md")):
         text = path.read_text(encoding="utf-8")
         fences: list[str] = []
         lines = text.splitlines()
@@ -68,7 +89,7 @@ def _fences(language: str):
                 fences.append("\n".join(buf))
             i += 1
         if fences:
-            result[path.name] = fences
+            result[path.relative_to(DOCS).as_posix()] = fences
     return result
 
 
@@ -106,6 +127,23 @@ def test_step_test_pages_lex_cleanly():
     assert bad == {}, f"STEP test pages produced Error tokens: {bad}"
 
 
+# The rendered STEP keywords page shows these snippets, so their token mapping
+# is pinned here as well as by that page's own clean-lexing check.
+def test_step_edition_3_production_snippets_lex_cleanly():
+    lexer = StepFileLexer()
+    for name, (source, token_type, value) in STEP_EDITION_3_SAMPLES.items():
+        pairs = list(lexer.get_tokens(source))
+        assert (token_type, value) in pairs, name
+        assert _error_tokens(lexer, source) == [], name
+
+
+def test_step_keywords_page_shows_every_edition_3_sample():
+    text = "\n".join(_fences("step21").get("step/keywords.md", []))
+    missing = [name for name, (source, _, _) in STEP_EDITION_3_SAMPLES.items()
+               if source not in text]
+    assert missing == [], f"keywords.md does not show: {missing}"
+
+
 # --------------------------------------------------------------------------
 # Completeness: the pages must cover their family of tokens
 # --------------------------------------------------------------------------
@@ -123,44 +161,47 @@ def _words_present(language: str, doc: str, words) -> list[str]:
 
 
 def test_express_keywords_page_covers_all_reserved_words():
-    missing = _words_present("express", "keywords.md", TABLE_1)
+    missing = _words_present("express", "express/keywords.md", TABLE_1)
     assert len(TABLE_1) == 77, f"expected 77 reserved words, got {len(TABLE_1)}"
     assert missing == [], f"keywords.md missing reserved words: {missing}"
 
 
 def test_express_operators_page_covers_all_word_operators():
-    missing = _words_present("express", "operators.md", _WORD_OPERATORS)
+    missing = _words_present("express", "express/operators.md",
+                             _WORD_OPERATORS)
     assert len(_WORD_OPERATORS) == 9
     assert missing == [], f"operators.md missing word operators: {missing}"
 
 
 def test_express_types_page_covers_all_types():
-    missing = _words_present("express", "types.md", _TYPES)
+    missing = _words_present("express", "express/types.md", _TYPES)
     assert len(_TYPES) == 17
     assert missing == [], f"types.md missing types: {missing}"
 
 
 def test_express_constants_page_covers_all_constants():
-    missing = _words_present("express", "constants.md", _CONSTANTS)
+    missing = _words_present("express", "express/constants.md", _CONSTANTS)
     assert len(_CONSTANTS) == 7
     # `?` is a single character; make sure it is actually there as a token.
-    assert "?" in "\n".join(_fences("express").get("constants.md", [])), "constants.md missing `?`"
+    text = "\n".join(_fences("express").get("express/constants.md", []))
+    assert "?" in text, "constants.md missing `?`"
     assert missing == [], f"constants.md missing constants: {missing}"
 
 
 def test_express_builtins_page_covers_all_builtins():
-    missing = _words_present("express", "builtins.md", _BUILTINS)
+    missing = _words_present("express", "express/builtins.md", _BUILTINS)
     assert len(_BUILTINS) == 31
     assert missing == [], f"builtins.md missing built-ins: {missing}"
 
 
 def test_step_keywords_page_covers_all_structure_keywords():
-    missing = _words_present("step21", "keywords.md", STEP_STRUCTURE_KEYWORDS)
+    missing = _words_present("step21", "step/keywords.md",
+                             STEP_STRUCTURE_KEYWORDS)
     assert missing == [], f"keywords.md missing structure keywords: {missing}"
 
 
 def test_step_enumerations_page_covers_enum_and_value_tokens():
-    text = "\n".join(_fences("step21").get("enumerations.md", []))
+    text = "\n".join(_fences("step21").get("step/enumerations.md", []))
     for token in (".T.", ".F.", ".UNSPECIFIED.", "$", "*"):
         assert token in text, f"enumerations.md missing {token!r}"
 
