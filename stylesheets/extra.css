@@ -1,0 +1,29 @@
+/* pygments-step documentation skin. */
+
+/* Brand palette: a calm "STEP teal" primary with a warm accent. */
+:root > * {
+  --md-primary-fg-color: #1B5F79;
+  --md-primary-fg-color--light: #2B7A96;
+  --md-primary-fg-color--dark: #14475B;
+  --md-accent-fg-color: #C0731C;
+  --md-accent-fg-color--transparent: rgba(192, 115, 28, 0.1);
+}
+
+/* Code-block tweaks for the EXPRESS word operators. */
+.highlight .o,
+.highlight .ow {
+  font-style: italic;
+}
+
+.highlight pre {
+  padding: 0.8rem 1rem;
+}
+
+/* Homepage action buttons sit a little closer to the intro copy. */
+.md-typeset .md-button + .md-button {
+  margin-left: 0.4rem;
+}
+
+.md-typeset h1 {
+  margin-bottom: 0.2em;
+}
